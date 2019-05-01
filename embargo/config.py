@@ -19,10 +19,10 @@ import numbers
 import os
 import re
 
-from .errors import BlockadeConfigError
+from .errors import EmbargoConfigError
 
 
-class BlockadeContainerConfig(object):
+class EmbargoContainerConfig(object):
     '''Class that encapsulates the configuration of one container
     '''
 
@@ -30,7 +30,7 @@ class BlockadeContainerConfig(object):
     def from_dict(name, values):
         '''
         Convert a dictionary of configuration values
-        into a sequence of BlockadeContainerConfig instances
+        into a sequence of EmbargoContainerConfig instances
         '''
 
         # determine the number of instances of this container
@@ -45,7 +45,7 @@ class BlockadeContainerConfig(object):
             return name
 
         def get_instance(n, idx=None):
-            return BlockadeContainerConfig(
+            return EmbargoContainerConfig(
                 with_index(n, idx),
                 values['image'],
                 command=values.get('command'),
@@ -87,11 +87,11 @@ class BlockadeContainerConfig(object):
         self.cap_add = cap_add
 
         if neutral and holy:
-            raise BlockadeConfigError("container must not be 'neutral' and 'holy' at the same time")
+            raise EmbargoConfigError("container must not be 'neutral' and 'holy' at the same time")
 
         # check start_delay format
         if not (isinstance(start_delay, numbers.Number) and start_delay >= 0):
-            raise BlockadeConfigError("'start_delay' must be numeric and non-negative")
+            raise EmbargoConfigError("'start_delay' must be numeric and non-negative")
 
         self.start_delay = start_delay
 
@@ -103,10 +103,10 @@ class BlockadeContainerConfig(object):
 
         self.environment = _dictify(environment, _populate_env, _populate_env)
 
-    def get_name(self, blockade_id):
+    def get_name(self, embargo_id):
         if self.container_name:
             return self.container_name
-        return '_'.join((blockade_id, self.name))
+        return '_'.join((embargo_id, self.name))
 
 
 _DEFAULT_NETWORK_CONFIG = {
@@ -117,11 +117,11 @@ _DEFAULT_NETWORK_CONFIG = {
 }
 
 
-class BlockadeConfig(object):
+class EmbargoConfig(object):
     @staticmethod
     def from_dict(values):
         '''
-        Instantiate a BlockadeConfig instance based on
+        Instantiate a EmbargoConfig instance based on
         a given dictionary of configuration values
         '''
         try:
@@ -131,16 +131,16 @@ class BlockadeConfig(object):
                 try:
                     # one config entry might result in many container
                     # instances (indicated by the 'count' config value)
-                    for cnt in BlockadeContainerConfig.from_dict(name, container_dict):
+                    for cnt in EmbargoContainerConfig.from_dict(name, container_dict):
                         # check for duplicate 'container_name' definitions
                         if cnt.container_name:
                             cname = cnt.container_name
                             existing = [c for c in parsed_containers.values() if c.container_name == cname]
                             if existing:
-                                raise BlockadeConfigError("Duplicate 'container_name' definition: %s" % (cname))
+                                raise EmbargoConfigError("Duplicate 'container_name' definition: %s" % (cname))
                         parsed_containers[cnt.name] = cnt
                 except Exception as err:
-                    raise BlockadeConfigError(
+                    raise EmbargoConfigError(
                         "Container '%s' config problem: %s" % (name, err))
 
             network = values.get('network')
@@ -151,14 +151,14 @@ class BlockadeConfig(object):
             else:
                 network = _DEFAULT_NETWORK_CONFIG.copy()
 
-            return BlockadeConfig(parsed_containers, network=network)
+            return EmbargoConfig(parsed_containers, network=network)
 
         except KeyError as err:
-            raise BlockadeConfigError("Config missing value: " + str(err))
+            raise EmbargoConfigError("Config missing value: " + str(err))
 
         except Exception as err:
             # TODO log this to some debug stream?
-            raise BlockadeConfigError("Failed to load config: " + str(err))
+            raise EmbargoConfigError("Failed to load config: " + str(err))
 
     def is_udn(self):
         return self.network['driver'] == 'udn'
@@ -172,10 +172,10 @@ class BlockadeConfig(object):
 def _populate_env(value):
     cwd = os.getcwd()
     # in here we may place some 'special' placeholders
-    # that get replaced by blockade itself
+    # that get replaced by embargo itself
     builtins = {
         # usually $PWD is set by the shell anyway but
-        # blockade is often used in terms of sudo that sometimes
+        # embargo is often used in terms of sudo that sometimes
         # removes various environment variables
         'PWD': cwd,
         'CWD': cwd
@@ -185,7 +185,7 @@ def _populate_env(value):
         key = match.group(1)
         env = os.environ.get(key) or builtins.get(key)
         if not env:
-            raise BlockadeConfigError("there is no environment variable '$%s'" % (key))
+            raise EmbargoConfigError("there is no environment variable '$%s'" % (key))
         return env
     return re.sub(r"\${([a-zA-Z][-_a-zA-Z0-9]*)}", get_env_value, value)
 
@@ -197,7 +197,7 @@ def _dictify(data, name='input', key_mod=lambda x: x, value_mod=lambda x: x):
         elif isinstance(data, collections.Mapping):
             return dict((key_mod(str(k)), value_mod(str(v or k))) for k, v in list(data.items()))
         else:
-            raise BlockadeConfigError("invalid %s: need list or map"
+            raise EmbargoConfigError("invalid %s: need list or map"
                                       % (name,))
     else:
         return {}
@@ -238,17 +238,17 @@ def _resolve(d):
             # guard against containers which link to unknown containers
             unknown = links - all_keys
             if len(unknown) == 1:
-                raise BlockadeConfigError(
+                raise EmbargoConfigError(
                     "container %s links to unknown container %s" %
                     (name, list(unknown)[0]))
             elif len(unknown) > 1:
-                raise BlockadeConfigError(
+                raise EmbargoConfigError(
                     "container %s links to unknown containers %s" %
                     (name, unknown))
 
         # if we made no progress this round, we have a circular dep
         if not resolved_this_round:
-            raise BlockadeConfigError("containers have circular links!")
+            raise EmbargoConfigError("containers have circular links!")
 
         resolved_keys.update(resolved_this_round)
 

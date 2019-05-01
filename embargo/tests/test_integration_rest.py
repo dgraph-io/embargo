@@ -23,13 +23,13 @@ import multiprocessing
 import requests
 from flask.ext.testing import LiveServerTestCase
 
-from blockade.api.rest import app, stack_trace_handler
-from blockade.api.manager import BlockadeManager
-from blockade.host import HostExec
-from blockade.tests import unittest
-from blockade.tests.test_integration import INT_SKIP
-from blockade.tests.helpers import HostExecHelper
-from blockade.tests.util import wait
+from ..api.rest import app, stack_trace_handler
+from ..api.manager import EmbargoManager
+from ..host import HostExec
+from ..tests import unittest
+from ..tests.test_integration import INT_SKIP
+from .helpers import HostExecHelper
+from .util import wait
 
 
 def wait_for_children():
@@ -86,7 +86,7 @@ class RestIntegrationTests(LiveServerTestCase):
 
         def _wrapped_run(*args, **kwargs):
             host_exec = HostExec()
-            BlockadeManager.set_host_exec(host_exec)
+            EmbargoManager.set_host_exec(host_exec)
 
             def _cleanup_host_exec(*args):
                 host_exec.close()
@@ -123,42 +123,42 @@ class RestIntegrationTests(LiveServerTestCase):
         # names must be less than 29 chars for iptable chains
         self.name = 'tmpRestTests' + str(random.randint(0, 10000))
 
-        # create a blockade
-        self.base_url = self.get_server_url() + "/blockade"
+        # create a embargo
+        self.base_url = self.get_server_url() + "/embargo"
         self.url = self.base_url + "/%s" % self.name
         result = requests.post(self.url, headers=self.headers, data=data)
-        error_msg = "failed to launch blockade: %s" % self.name
+        error_msg = "failed to launch embargo: %s" % self.name
         assert result.status_code == 204, error_msg
 
     def tearDown(self):
         result = requests.delete(self.url)
-        error_msg = "failed to destroy blockade: %s" % self.name
+        error_msg = "failed to destroy embargo: %s" % self.name
         assert result.status_code == 204, error_msg
 
-    def _get_all_blockades(self):
+    def _get_all_embargos(self):
         result = requests.get(self.base_url, headers=self.headers)
         assert result.status_code == 200
         return result.json()
 
-    def _get_blockade(self):
+    def _get_embargo(self):
         result = requests.get(self.url, headers=self.headers)
         assert result.status_code == 200
         return result.json()
 
     @unittest.skipIf(*INT_SKIP)
-    def test_get_blockades(self):
-        # get all blockades
-        result_data = self._get_all_blockades()
-        assert 'blockades' in result_data
-        assert self.name in result_data.get('blockades')
+    def test_get_embargos(self):
+        # get all embargos
+        result_data = self._get_all_embargos()
+        assert 'embargos' in result_data
+        assert self.name in result_data.get('embargos')
 
-        # get the single blockade that was created
-        result_data = self._get_blockade()
+        # get the single embargo that was created
+        result_data = self._get_embargo()
         assert 'containers' in result_data
         assert len(result_data.get('containers')) == 2
 
     def _assert_partition(self):
-        result_data = self._get_blockade()
+        result_data = self._get_embargo()
         c1_partition = result_data.get('containers').get('c1').get('partition')
         c2_partition = result_data.get('containers').get('c2').get('partition')
         assert isinstance(c1_partition, int)
@@ -168,7 +168,7 @@ class RestIntegrationTests(LiveServerTestCase):
         assert c1_partition != c2_partition
 
     def _assert_join(self):
-        result_data = self._get_blockade()
+        result_data = self._get_embargo()
         c1_partition = result_data.get('containers').get('c1').get('partition')
         c2_partition = result_data.get('containers').get('c2').get('partition')
         assert c1_partition is None
@@ -209,7 +209,7 @@ class RestIntegrationTests(LiveServerTestCase):
         assert result.status_code == 400
 
     def _assert_container_status(self, container_name, container_status):
-        result_data = self._get_blockade()
+        result_data = self._get_embargo()
         status =\
             result_data.get('containers').get(container_name).get('status')
         assert status.upper() == container_status.upper()
@@ -243,7 +243,7 @@ class RestIntegrationTests(LiveServerTestCase):
         self._assert_event('start')
 
     def _assert_container_network_state(self, container_name, network_state):
-        result_data = self._get_blockade()
+        result_data = self._get_embargo()
         container = result_data.get('containers').get(container_name)
         state = container.get('network_state')
         assert state.upper() == network_state.upper()

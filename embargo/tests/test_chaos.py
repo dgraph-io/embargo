@@ -19,9 +19,9 @@ from collections import namedtuple
 
 from mock import patch, MagicMock
 
-from blockade import errors
-from blockade import chaos
-from blockade.api.manager import BlockadeManager
+from .. import errors
+from .. import chaos
+from ..api.manager import EmbargoManager
 
 
 FakeContainers = namedtuple('FakeContainers', 'name')
@@ -34,7 +34,7 @@ class ChaosTest(unittest.TestCase):
 
     def tearDown(self):
         block_mock = MagicMock()
-        with patch.object(BlockadeManager, 'get_blockade',
+        with patch.object(EmbargoManager, 'get_embargo',
                           return_value=block_mock):
             self.chaos.shutdown()
 
@@ -53,14 +53,14 @@ class ChaosTest(unittest.TestCase):
         name = "aname"
         block_mock = MagicMock()
         self.chaos.new_chaos(block_mock, name)
-        with self.assertRaises(errors.BlockadeUsageError):
+        with self.assertRaises(errors.EmbargoUsageError):
             self.chaos.new_chaos(block_mock, name)
 
     def test_delete_running_chaos(self):
         name = "aname"
         block_mock = MagicMock()
         self.chaos.new_chaos(block_mock, name)
-        with self.assertRaises(errors.BlockadeUsageError):
+        with self.assertRaises(errors.EmbargoUsageError):
             self.chaos.delete(name)
 
     def _specific_event_called(self, func_name, event_name):

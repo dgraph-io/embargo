@@ -1,12 +1,15 @@
 ********
-Blockade
+EMBARGO
 ********
 
-.. image:: https://travis-ci.org/worstcase/blockade.png?branch=master
-        :target: https://travis-ci.org/worstcase/blockade
+Embargo is a fork of blockade. We have decided to fork blockade because
+the original project has not been maintained for years. The main
+difference between the original and this fork is that support for python
+2 is dropped and python 3.6 and 3.7 should be supported. More changes
+should be on the way.
 
-Blockade is a utility for testing network failures and partitions in
-distributed applications. Blockade uses `Docker <http://www.docker.io>`_
+Embargo is a utility for testing network failures and partitions in
+distributed applications. Embargo uses `Docker <http://www.docker.io>`_
 containers to run application processes and manages the network from
 the host system to create various failure scenarios.
 
@@ -19,11 +22,11 @@ down and that another node emerges as leader.
 Check out the `full documentation <http://blockade.readthedocs.org>`_
 for details.
 
-Blockade features:
+Embargo features:
 
 * A flexible YAML format to describe the containers in your application
 * Support for dependencies between containers, using named links
-* A CLI tool for managing and querying the status of your blockade
+* A CLI tool for managing and querying the status of your embargo
 * Creation of arbitrary partitions between containers
 * Giving a container a flaky network connection to others (drop packets)
 * Giving a container a slow network connection to others (latency)
@@ -46,9 +49,9 @@ Requirements
 Configuration
 =============
 
-Blockade expects a ``blockade.yaml`` file in the current directory which
+Embargo expects a ``embargo.yaml`` file in the current directory which
 describes the containers to launch, how they are linked, and various
-parameters for the blockade modes. Example:
+parameters for the embargo modes. Example:
 
 .. code-block:: yaml
 
@@ -84,61 +87,61 @@ parameters for the blockade modes. Example:
       slow: 75ms 100ms distribution normal
 
 
-Blockade stores transient information in a local ``.blockade/`` directory.
+Embargo stores transient information in a local ``.embargo/`` directory.
 This directory will be cleaned up automatically when you run the
-``blockade destroy`` command.
+``embargo destroy`` command.
 
 
 Usage
 =====
 
-Blockade may be used from the command line manually. The commands are also
+Embargo may be used from the command line manually. The commands are also
 intended to be easy to wrap and automate within tests, etc.
 
 
 Commands
 ========
 
-``blockade up``
+``embargo up``
 
 Start the containers and link them together, if necessary.
 
 
-``blockade destroy``
+``embargo destroy``
 
 Destroys all containers and restore networks.
 
 
-``blockade status``
+``embargo status``
 
-Print the status of the containers and blockade.
+Print the status of the containers and embargo.
 
 
-``blockade flaky n1``
+``embargo flaky n1``
 
-``blockade flaky n1 n2``
+``embargo flaky n1 n2``
 
 Make network flaky to one or more containers.
 
 
-``blockade slow n1``
+``embargo slow n1``
 
 Make network slow to one or more containers.
 
 
-``blockade duplicate n1``
+``embargo duplicate n1``
 
 Toggle sporadic duplicate packets in the network of one or more containers.
 
 
-``blockade fast n1``
+``embargo fast n1``
 
 Restore network speed and reliability to one or more containers.
 
 
-``blockade partition n1,n2``
+``embargo partition n1,n2``
 
-``blockade partition n1,n2 n3,n4``
+``embargo partition n1,n2 n3,n4``
 
 Create one or more network partitions. Each partition is specified as a
 comma-separated list. Containers may not exist in more than one partition.
@@ -146,11 +149,11 @@ Containers not specified are grouped into an implicit partition. Each
 partition command replaces any previous partition or block rules.
 
 
-``blockade join``
+``embargo join``
 
 Remove all partitions between containers.
 
-``blockade random-partition``
+``embargo random-partition``
 
 Introduce one or many random partitions among the configured nodes.
 
@@ -158,20 +161,20 @@ Introduce one or many random partitions among the configured nodes.
 License
 =======
 
-Blockade is offered under the Apache License 2.0.
+Embargo is offered under the Apache License 2.0.
 
 
 Development
 ===========
 
-Install test dependencies with ``pip install blockade[test]``.
+Install test dependencies with ``pip install embargo[test]``.
 
 You can run integration tests in a Vagrant VM using the included Vagrantfile.
 Run ``vagrant up`` and Docker will be installed in your VM and tests run.
 You can rerun them with ``vagrant provision``, or SSH into the VM and run
 them yourself, from ``/vagrant``.
 
-Blockade documentation is built with Sphinx and is found under ``docs/``.
+Embargo documentation is built with Sphinx and is found under ``docs/``.
 To build:
 
 .. code-block:: bash

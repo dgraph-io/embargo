@@ -28,8 +28,8 @@ from .errors import HostExecError
 _logger = logging.getLogger(__name__)
 
 DEFAULT_IMAGE = 'vimagick/iptables:latest'
-DEFAULT_CONTAINER_PREFIX = 'blockade-helper'
-CONTAINER_PREFIX_ENV = "BLOCKADE_HOST_CONTAINER_PREFIX"
+DEFAULT_CONTAINER_PREFIX = 'embargo-helper'
+CONTAINER_PREFIX_ENV = "EMBARGO_HOST_CONTAINER_PREFIX"
 
 
 class HostExec(object):
@@ -38,8 +38,8 @@ class HostExec(object):
     A container is launched on the first attempt to run a command. The
     container runs a sleep command with a configurable timeout - to ensure
     it stops running if orphaned. But to guard against race conditions where
-    blockade attempts to use a container just as it is dying, we also have
-    a separate expiration threshold, where blockade will automatically discard
+    embargo attempts to use a container just as it is dying, we also have
+    a separate expiration threshold, where embargo will automatically discard
     an old container well before it would die.
     """
 

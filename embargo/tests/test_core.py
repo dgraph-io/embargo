@@ -17,39 +17,39 @@ import os
 
 import mock
 
-from blockade.tests import unittest
-from blockade.core import Blockade, Container, ContainerStatus, expand_partitions
-from blockade.errors import BlockadeError
-from blockade.config import BlockadeContainerConfig, BlockadeConfig
+from . import unittest
+from ..core import Embargo, Container, ContainerStatus, expand_partitions
+from ..errors import EmbargoError
+from ..config import EmbargoContainerConfig, EmbargoConfig
 
 
-class BlockadeCoreTests(unittest.TestCase):
+class EmbargoCoreTests(unittest.TestCase):
 
-    blockade_id = None
+    embargo_id = None
 
     def setUp(self):
-        self.blockade_id = "ourblockadeid"
+        self.embargo_id = "ourembargoid"
         self.network = mock.Mock()
         self.docker_client = mock.Mock()
         self.state = mock.MagicMock()
         self.state.get_audit_file.return_value = os.devnull
 
     def test_create(self):
-        containers = {'c1': BlockadeContainerConfig("c1", "image"),
-                      'c2': BlockadeContainerConfig("c2", "image"),
-                      'c3': BlockadeContainerConfig("c3", "image")}
-        config = BlockadeConfig(containers)
+        containers = {'c1': EmbargoContainerConfig("c1", "image"),
+                      'c2': EmbargoContainerConfig("c2", "image"),
+                      'c3': EmbargoContainerConfig("c3", "image")}
+        config = EmbargoConfig(containers)
 
         self.network.get_container_device.side_effect = lambda dc, y: "veth"+y
 
         self.state.exists.side_effect = lambda: False
-        self.state.blockade_id = self.blockade_id
+        self.state.embargo_id = self.embargo_id
         self.docker_client.create_container.side_effect = [
             {"Id": "container1"},
             {"Id": "container2"},
             {"Id": "container3"}]
 
-        b = Blockade(config,
+        b = Embargo(config,
                      state=self.state,
                      network=self.network,
                      docker_client=self.docker_client)
@@ -74,10 +74,10 @@ class BlockadeCoreTests(unittest.TestCase):
         self.assert_partitions(partitions, [["c1", "c3"], ["c2", "c5"],
                                             ["c4"]])
 
-        with self.assertRaisesRegexp(BlockadeError, "unknown"):
+        with self.assertRaisesRegexp(EmbargoError, "unknown"):
             expand_partitions(containers, [["c1"], ["c100"]])
 
-        with self.assertRaisesRegexp(BlockadeError, "holy"):
+        with self.assertRaisesRegexp(EmbargoError, "holy"):
             expand_partitions(containers, [["c1"], ["c2", "c6"]])
 
     def assert_partitions(self, partitions1, partitions2):
@@ -93,9 +93,9 @@ class BlockadeCoreTests(unittest.TestCase):
         self.state.exists.side_effect = lambda: False
         self.state.container_id.side_effect = lambda name: None
         self.state.containers = {}
-        self.state.blockade_id = self.blockade_id
+        self.state.embargo_id = self.embargo_id
 
-        b = Blockade(BlockadeConfig(),
+        b = Embargo(EmbargoConfig(),
                      state=self.state,
                      network=self.network,
                      docker_client=self.docker_client)
@@ -117,7 +117,7 @@ class BlockadeCoreTests(unittest.TestCase):
             }
         }
 
-        b = Blockade(BlockadeConfig(),
+        b = Embargo(EmbargoConfig(),
                      state=self.state,
                      network=self.network,
                      docker_client=self.docker_client)

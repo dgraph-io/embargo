@@ -14,9 +14,9 @@
 # limitations under the License.
 #
 
-from blockade.tests import unittest
-from blockade.errors import BlockadeConfigError
-from blockade.config import BlockadeConfig, BlockadeContainerConfig, \
+from . import unittest
+from ..errors import EmbargoConfigError
+from ..config import EmbargoConfig, EmbargoContainerConfig, \
     dependency_sorted
 
 
@@ -29,7 +29,7 @@ class ConfigTests(unittest.TestCase):
         }
         d = dict(containers=containers)
 
-        config = BlockadeConfig.from_dict(d)
+        config = EmbargoConfig.from_dict(d)
         self.assertEqual(len(config.containers), 2)
         self.assertEqual(config.containers["c1"].name, "c1")
         self.assertEqual(config.containers["c1"].image, "image1")
@@ -44,7 +44,7 @@ class ConfigTests(unittest.TestCase):
         network = {"flaky": "61%"}
         d = dict(containers=containers, network=network)
 
-        config = BlockadeConfig.from_dict(d)
+        config = EmbargoConfig.from_dict(d)
         # default value should be there
         self.assertIn("flaky", config.network)
         self.assertEqual(config.network['flaky'], "61%")
@@ -59,7 +59,7 @@ class ConfigTests(unittest.TestCase):
         network = {}
         d = dict(containers=containers, network=network)
 
-        config = BlockadeConfig.from_dict(d)
+        config = EmbargoConfig.from_dict(d)
         # default value should be there
         self.assertEqual(len(config.containers), 1)
         c1 = config.containers['c1']
@@ -73,7 +73,7 @@ class ConfigTests(unittest.TestCase):
         network = {}
         d = dict(containers=containers, network=network)
 
-        config = BlockadeConfig.from_dict(d)
+        config = EmbargoConfig.from_dict(d)
         # default value should be there
         self.assertEqual(len(config.containers), 1)
         c1 = config.containers['c1']
@@ -87,7 +87,7 @@ class ConfigTests(unittest.TestCase):
         network = {}
         d = dict(containers=containers, network=network)
 
-        config = BlockadeConfig.from_dict(d)
+        config = EmbargoConfig.from_dict(d)
         # default value should be there
         self.assertEqual(len(config.containers), 1)
         c1 = config.containers['c1']
@@ -101,7 +101,7 @@ class ConfigTests(unittest.TestCase):
         network = {}
         d = dict(containers=containers, network=network)
 
-        config = BlockadeConfig.from_dict(d)
+        config = EmbargoConfig.from_dict(d)
         # default value should be there
         self.assertEqual(len(config.containers), 1)
         c1 = config.containers['c1']
@@ -114,7 +114,7 @@ class ConfigTests(unittest.TestCase):
         }
         d = dict(containers=containers, network={})
 
-        config = BlockadeConfig.from_dict(d)
+        config = EmbargoConfig.from_dict(d)
         self.assertEqual(len(config.containers), 1)
         c1 = config.containers['c1']
         self.assertEqual(c1.environment, {"HATS": "4", "JACKETS": "some"})
@@ -125,7 +125,7 @@ class ConfigTests(unittest.TestCase):
         }
         d = dict(containers=containers, network={})
 
-        config = BlockadeConfig.from_dict(d)
+        config = EmbargoConfig.from_dict(d)
         self.assertEqual(len(config.containers), 1)
         c1 = config.containers['c1']
         self.assertEqual(c1.expose_ports, [80])
@@ -138,7 +138,7 @@ class ConfigTests(unittest.TestCase):
         }
         d = dict(containers=containers, network={})
 
-        config = BlockadeConfig.from_dict(d)
+        config = EmbargoConfig.from_dict(d)
         self.assertEqual(len(config.containers), 1)
         c1 = config.containers['c1']
         self.assertEqual(c1.expose_ports, [10000])
@@ -151,7 +151,7 @@ class ConfigTests(unittest.TestCase):
         network = {}
         d = dict(containers=containers, network=network)
 
-        config = BlockadeConfig.from_dict(d)
+        config = EmbargoConfig.from_dict(d)
         # default value should be there
         self.assertEqual(len(config.containers), 1)
         c1 = config.containers['c1']
@@ -163,8 +163,8 @@ class ConfigTests(unittest.TestCase):
             "c2": {"image": "image2", "links": ["c1"]}
         }
         d = dict(contianers=containers)
-        with self.assertRaises(BlockadeConfigError):
-            BlockadeConfig.from_dict(d)
+        with self.assertRaises(EmbargoConfigError):
+            EmbargoConfig.from_dict(d)
 
     def test_parse_fail_2(self):
         containers = {
@@ -172,8 +172,8 @@ class ConfigTests(unittest.TestCase):
             "c2": {"image": "image2", "links": ["c1"]}
         }
         d = dict(containers=containers)
-        with self.assertRaises(BlockadeConfigError):
-            BlockadeConfig.from_dict(d)
+        with self.assertRaises(EmbargoConfigError):
+            EmbargoConfig.from_dict(d)
 
     def test_parse_with_start_delay_1(self):
         containers = {
@@ -182,7 +182,7 @@ class ConfigTests(unittest.TestCase):
         }
         d = dict(containers=containers, network={})
 
-        config = BlockadeConfig.from_dict(d)
+        config = EmbargoConfig.from_dict(d)
         self.assertEqual(len(config.containers), 1)
         c1 = config.containers['c1']
         self.assertEqual(c1.start_delay, 3)
@@ -194,7 +194,7 @@ class ConfigTests(unittest.TestCase):
         }
         d = dict(containers=containers, network={})
 
-        config = BlockadeConfig.from_dict(d)
+        config = EmbargoConfig.from_dict(d)
         self.assertEqual(len(config.containers), 1)
         c1 = config.containers['c1']
         self.assertEqual(c1.start_delay, 0.4)
@@ -206,8 +206,8 @@ class ConfigTests(unittest.TestCase):
         }
         d = dict(containers=containers, network={})
 
-        with self.assertRaisesRegexp(BlockadeConfigError, "start_delay"):
-            BlockadeConfig.from_dict(d)
+        with self.assertRaisesRegexp(EmbargoConfigError, "start_delay"):
+            EmbargoConfig.from_dict(d)
 
     def test_parse_with_start_delay_fail_nonnumeric(self):
         containers = {
@@ -216,8 +216,8 @@ class ConfigTests(unittest.TestCase):
         }
         d = dict(containers=containers, network={})
 
-        with self.assertRaisesRegexp(BlockadeConfigError, "start_delay"):
-            BlockadeConfig.from_dict(d)
+        with self.assertRaisesRegexp(EmbargoConfigError, "start_delay"):
+            EmbargoConfig.from_dict(d)
 
     def test_parse_with_cap_add(self):
         containers = {
@@ -226,7 +226,7 @@ class ConfigTests(unittest.TestCase):
         }
         d = dict(containers=containers, network={})
 
-        config = BlockadeConfig.from_dict(d)
+        config = EmbargoConfig.from_dict(d)
         self.assertEqual(len(config.containers), 1)
         c1 = config.containers['c1']
         self.assertEqual(c1.cap_add, ["NET_ADMIN"])
@@ -238,7 +238,7 @@ class ConfigTests(unittest.TestCase):
         }
         d = dict(containers=containers, network={})
 
-        config = BlockadeConfig.from_dict(d)
+        config = EmbargoConfig.from_dict(d)
         self.assertEqual(len(config.containers), 1)
         c1 = config.containers['c1']
         self.assertEqual(c1.cap_add, ["NET_ADMIN", "MKNOD"])
@@ -251,7 +251,7 @@ class ConfigTests(unittest.TestCase):
         }
         d = dict(containers=containers, network={})
 
-        config = BlockadeConfig.from_dict(d)
+        config = EmbargoConfig.from_dict(d)
         self.assertEqual(set(config.containers.keys()),
                          set(["db_1", "db_2", "app_1", "app_2", "app_3"]))
         self.assertEqual(config.containers["app_1"].container_name, "abc_1")
@@ -259,18 +259,18 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.containers["app_3"].container_name, "abc_3")
 
     def test_link_ordering_1(self):
-        containers = [BlockadeContainerConfig("c1", "image"),
-                      BlockadeContainerConfig("c2", "image"),
-                      BlockadeContainerConfig("c3", "image")]
+        containers = [EmbargoContainerConfig("c1", "image"),
+                      EmbargoContainerConfig("c2", "image"),
+                      EmbargoContainerConfig("c3", "image")]
         ordered = dependency_sorted(containers)
         ordered_names = [c.name for c in ordered]
         self.assertDependencyLevels(ordered_names, ["c1", "c2", "c3"])
 
     def test_link_ordering_2(self):
-        containers = [BlockadeContainerConfig("c1", "image"),
-                      BlockadeContainerConfig("c2", "image",
+        containers = [EmbargoContainerConfig("c1", "image"),
+                      EmbargoContainerConfig("c2", "image",
                                               links={"c1": "c1"}),
-                      BlockadeContainerConfig("c3", "image")]
+                      EmbargoContainerConfig("c3", "image")]
         ordered = dependency_sorted(containers)
         ordered_names = [c.name for c in ordered]
         self.assertDependencyLevels(ordered_names,
@@ -278,22 +278,22 @@ class ConfigTests(unittest.TestCase):
                                     ["c2"])
 
     def test_link_ordering_3(self):
-        containers = [BlockadeContainerConfig("c1", "image"),
-                      BlockadeContainerConfig("c2", "image",
+        containers = [EmbargoContainerConfig("c1", "image"),
+                      EmbargoContainerConfig("c2", "image",
                                               links={"c1": "c1"}),
-                      BlockadeContainerConfig("c3", "image",
+                      EmbargoContainerConfig("c3", "image",
                                               links={"c1": "c1"})]
         ordered = dependency_sorted(containers)
         ordered_names = [c.name for c in ordered]
         self.assertDependencyLevels(ordered_names, ["c1"], ["c2", "c3"])
 
     def test_link_ordering_4(self):
-        containers = [BlockadeContainerConfig("c1", "image"),
-                      BlockadeContainerConfig("c2", "image", links=["c1"]),
-                      BlockadeContainerConfig("c3", "image", links=["c1"]),
-                      BlockadeContainerConfig("c4", "image",
+        containers = [EmbargoContainerConfig("c1", "image"),
+                      EmbargoContainerConfig("c2", "image", links=["c1"]),
+                      EmbargoContainerConfig("c3", "image", links=["c1"]),
+                      EmbargoContainerConfig("c4", "image",
                                               links=["c1", "c3"]),
-                      BlockadeContainerConfig("c5", "image",
+                      EmbargoContainerConfig("c5", "image",
                                               links=["c2", "c3"]),
                       ]
         ordered = dependency_sorted(containers)
@@ -302,39 +302,39 @@ class ConfigTests(unittest.TestCase):
                                     ["c4", "c5"])
 
     def test_link_ordering_unknown_1(self):
-        containers = [BlockadeContainerConfig("c1", "image"),
-                      BlockadeContainerConfig("c2", "image", links=["c6"]),
-                      BlockadeContainerConfig("c3", "image", links=["c1"])]
-        with self.assertRaisesRegexp(BlockadeConfigError, "unknown"):
+        containers = [EmbargoContainerConfig("c1", "image"),
+                      EmbargoContainerConfig("c2", "image", links=["c6"]),
+                      EmbargoContainerConfig("c3", "image", links=["c1"])]
+        with self.assertRaisesRegexp(EmbargoConfigError, "unknown"):
             dependency_sorted(containers)
 
     def test_link_ordering_unknown_2(self):
-        containers = [BlockadeContainerConfig("c1", "image"),
-                      BlockadeContainerConfig("c2", "image",
+        containers = [EmbargoContainerConfig("c1", "image"),
+                      EmbargoContainerConfig("c2", "image",
                                               links=["c6", "c7"]),
-                      BlockadeContainerConfig("c3", "image", links=["c1"])]
-        with self.assertRaisesRegexp(BlockadeConfigError, "unknown"):
+                      EmbargoContainerConfig("c3", "image", links=["c1"])]
+        with self.assertRaisesRegexp(EmbargoConfigError, "unknown"):
             dependency_sorted(containers)
 
     def test_link_ordering_circular_1(self):
-        containers = [BlockadeContainerConfig("c1", "image"),
-                      BlockadeContainerConfig("c2", "image", links=["c1"]),
-                      BlockadeContainerConfig("c3", "image", links=["c3"])]
+        containers = [EmbargoContainerConfig("c1", "image"),
+                      EmbargoContainerConfig("c2", "image", links=["c1"]),
+                      EmbargoContainerConfig("c3", "image", links=["c3"])]
 
-        with self.assertRaisesRegexp(BlockadeConfigError, "circular"):
+        with self.assertRaisesRegexp(EmbargoConfigError, "circular"):
             dependency_sorted(containers)
 
     def test_link_ordering_circular_2(self):
-        containers = [BlockadeContainerConfig("c1", "image"),
-                      BlockadeContainerConfig("c2", "image",
+        containers = [EmbargoContainerConfig("c1", "image"),
+                      EmbargoContainerConfig("c2", "image",
                                               links=["c1", "c3"]),
-                      BlockadeContainerConfig("c3", "image", links=["c2"])]
+                      EmbargoContainerConfig("c3", "image", links=["c2"])]
 
-        with self.assertRaisesRegexp(BlockadeConfigError, "circular"):
+        with self.assertRaisesRegexp(EmbargoConfigError, "circular"):
             dependency_sorted(containers)
 
     def test_publish_without_expose_1(self):
-        cont = BlockadeContainerConfig("c1", "image",
+        cont = EmbargoContainerConfig("c1", "image",
             expose_ports=[], publish_ports={8080: 80})
         self.assertEqual(cont.expose_ports, [80])
 

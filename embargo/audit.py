@@ -3,7 +3,7 @@ import logging
 import os
 import time
 
-from blockade import errors
+from . import errors
 
 
 _logger = logging.getLogger(__file__)
@@ -37,7 +37,7 @@ class EventAuditor(object):
             with open(file_path, "a"):
                 pass
         except IOError as ioe:
-            raise errors.BlockadeError(
+            raise errors.EmbargoError(
                     "Cannot open the audit file %s because %s" % (file_path,
                                                                   str(ioe)))
 

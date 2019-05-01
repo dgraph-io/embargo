@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from .errors import BlockadeError
+from .errors import EmbargoError
 
 import docker
 
@@ -60,8 +60,8 @@ def docker_run(command,
                                        force=True)
         return
     elif status_code != 0:
-        err_msg = "Problem running Blockade command '%s'"
-        raise BlockadeError(err_msg % command)
+        err_msg = "Problem running Embargo command '%s'"
+        raise EmbargoError(err_msg % command)
 
     docker_client.remove_container(container=container.get('Id'), force=True)
 
@@ -75,8 +75,8 @@ def check_docker():
     try:
         client.ping()
     except Exception as e:
-        raise BlockadeError(("Unable to connect to Docker: %s\n\n" +
-            "Blockade requires access to a Docker API.\nEnsure that Docker " +
+        raise EmbargoError(("Unable to connect to Docker: %s\n\n" +
+            "Embargo requires access to a Docker API.\nEnsure that Docker " +
             "is running and your user has the correct privileges to access " +
             "it.\nOr set the DOCKER_HOST env to point to an external Docker.")
         % (str(e),))

@@ -19,7 +19,7 @@ from collections import namedtuple
 import os
 import threading
 
-from blockade import errors
+from . import errors
 
 
 _logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ class StateMachine(object):
         try:
             state_trans = self._state_map[self._state][event]
         except KeyError:
-            raise errors.BlockadeStateTransitionError(
+            raise errors.EmbargoStateTransitionError(
                 self._state, event,
                 "It is invalid to have event %(event)s when in state "
                 "%(current_state)s" % {"event": event, "current_state":

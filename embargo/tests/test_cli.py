@@ -19,9 +19,9 @@ import tempfile
 import shutil
 from textwrap import dedent
 
-from blockade import cli
-from blockade.tests import unittest
-from blockade.errors import BlockadeError
+from .. import cli
+from . import unittest
+from ..errors import EmbargoError
 
 
 class CommandLineTests(unittest.TestCase):
@@ -59,14 +59,14 @@ class ConfigFilePathTests(unittest.TestCase):
             '''))
 
     def test_yml(self):
-        """load config from blockade.yml"""
-        self._writeConfig("blockade.yml")
+        """load config from embargo.yml"""
+        self._writeConfig("embargo.yml")
         config = cli.load_config()
         self.assertIn("zzz", config.containers)
 
     def test_yaml(self):
-        """load config from blockade.yaml"""
-        self._writeConfig("blockade.yaml")
+        """load config from embargo.yaml"""
+        self._writeConfig("embargo.yaml")
         config = cli.load_config()
         self.assertIn("zzz", config.containers)
 
@@ -78,7 +78,7 @@ class ConfigFilePathTests(unittest.TestCase):
 
     def test_custom_notfound(self):
         """load config from nonexistent custom path"""
-        with self.assertRaisesRegexp(BlockadeError, "^Failed to load config"):
+        with self.assertRaisesRegexp(EmbargoError, "^Failed to load config"):
             cli.load_config("./custom-file.yaml")
 
     def test_noconfig(self):

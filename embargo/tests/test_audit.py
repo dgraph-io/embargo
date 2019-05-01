@@ -18,7 +18,7 @@ import os
 import tempfile
 import unittest
 
-from blockade import audit
+from .. import audit
 
 
 class AuditTest(unittest.TestCase):

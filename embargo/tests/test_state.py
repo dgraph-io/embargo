@@ -18,12 +18,12 @@ import os
 import shutil
 import tempfile
 
-from blockade.tests import unittest
-from blockade.state import BlockadeState
-from blockade.errors import NotInitializedError
+from . import unittest
+from ..state import EmbargoState
+from ..errors import NotInitializedError
 
 
-class BlockadeStateTests(unittest.TestCase):
+class EmbargoStateTests(unittest.TestCase):
     tempdir = None
     oldcwd = None
     state = None
@@ -32,7 +32,7 @@ class BlockadeStateTests(unittest.TestCase):
         self.tempdir = tempfile.mkdtemp()
         self.oldcwd = os.getcwd()
         os.chdir(self.tempdir)
-        self.state = BlockadeState(data_dir=self.tempdir)
+        self.state = EmbargoState(data_dir=self.tempdir)
 
     def tearDown(self):
         self.state = None
@@ -49,13 +49,13 @@ class BlockadeStateTests(unittest.TestCase):
         containers = {"n1": {"a": 1}, "n2": {"a": 4}}
         self.state.initialize(containers=containers)
 
-        self.assertTrue(os.path.exists(".blockade/state.yml"))
+        self.assertTrue(os.path.exists(".embargo/state.yml"))
 
         self.assertEqual(self.state.containers, containers)
         self.assertIsNot(self.state.containers, containers)
         self.assertIsNot(self.state.containers["n2"], containers["n2"])
 
-        self.assertRegexpMatches(self.state.blockade_id, "^[a-z0-9]+$")
+        self.assertRegexpMatches(self.state.embargo_id, "^[a-z0-9]+$")
 
         self.state.load()
         self.assertEqual(self.state.containers, containers)
@@ -63,8 +63,8 @@ class BlockadeStateTests(unittest.TestCase):
         self.assertIsNot(self.state.containers["n2"], containers["n2"])
 
         self.state.destroy()
-        self.assertFalse(os.path.exists(".blockade/state.yml"))
-        self.assertFalse(os.path.exists(".blockade"))
+        self.assertFalse(os.path.exists(".embargo/state.yml"))
+        self.assertFalse(os.path.exists(".embargo"))
 
     def test_state_update(self):
         containers = {"n1": {"a": 1}, "n2": {"a": 4}}
@@ -84,14 +84,14 @@ class BlockadeStateTests(unittest.TestCase):
             self.state.load()
 
 
-class BlockadeIdTests(unittest.TestCase):
-    state = BlockadeState()
+class EmbargoIdTests(unittest.TestCase):
+    state = EmbargoState()
 
-    def test_blockade_id(self):
-        get_blockade_id = self.state._get_blockade_id_from_cwd
-        self.assertEqual(get_blockade_id(cwd="/abs/path/1234"), "1234")
-        self.assertEqual(get_blockade_id(cwd="rel/path/abc"), "abc")
+    def test_embargo_id(self):
+        get_embargo_id = self.state._get_embargo_id_from_cwd
+        self.assertEqual(get_embargo_id(cwd="/abs/path/1234"), "1234")
+        self.assertEqual(get_embargo_id(cwd="rel/path/abc"), "abc")
 
         # invalid names should be replaced with "default"
-        self.assertEqual(get_blockade_id(cwd="/"), "default")
-        self.assertEqual(get_blockade_id(cwd="rel/path/$$("), "default")
+        self.assertEqual(get_embargo_id(cwd="/"), "default")
+        self.assertEqual(get_embargo_id(cwd="rel/path/$$("), "default")

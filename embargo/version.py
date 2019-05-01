@@ -14,7 +14,4 @@
 # limitations under the License.
 #
 
-# WARNING: place nothing else into this file. It is directly exec'd by
-# setup.py.
-
-__version__ = "0.1.0"
+__version__ = "0.1.1"

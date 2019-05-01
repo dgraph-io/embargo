@@ -20,13 +20,13 @@ import itertools
 import re
 import logging
 
-from .errors import BlockadeError, HostExecError
+from .errors import EmbargoError, HostExecError
 
 
 _logger = logging.getLogger(__name__)
 
 
-BLOCKADE_CHAIN_PREFIX = "blockade-"
+EMBARGO_CHAIN_PREFIX = "embargo-"
 # iptables chain names are a max of 29 characters so we truncate the prefix
 MAX_CHAIN_PREFIX_LENGTH = 25
 IPTABLES_DOCKER_IMAGE = "vimagick/iptables:latest"
@@ -42,7 +42,7 @@ class NetworkState(object):
     UNKNOWN = "UNKNOWN"
 
 
-class BlockadeNetwork(object):
+class EmbargoNetwork(object):
     def __init__(self, config, host_exec):
         self.config = config
         self.host_exec = host_exec
@@ -67,15 +67,15 @@ class BlockadeNetwork(object):
     def fast(self, device):
         self.traffic_control.restore(device)
 
-    def restore(self, blockade_id):
-        self.iptables.clear(blockade_id)
+    def restore(self, embargo_id):
+        self.iptables.clear(embargo_id)
 
-    def partition_containers(self, blockade_id, partitions):
-        self.iptables.clear(blockade_id)
-        self._partition_containers(blockade_id, partitions)
+    def partition_containers(self, embargo_id, partitions):
+        self.iptables.clear(embargo_id)
+        self._partition_containers(embargo_id, partitions)
 
-    def get_ip_partitions(self, blockade_id):
-        return self.iptables.get_source_chains(blockade_id)
+    def get_ip_partitions(self, embargo_id):
+        return self.iptables.get_source_chains(embargo_id)
 
     def get_container_device(self, docker_client, container_id):
         container_idx = get_container_device_index(docker_client, container_id)
@@ -90,7 +90,7 @@ class BlockadeNetwork(object):
         except Exception as e:
             _logger.error("error listing host network interfaces", exc_info=True)
 
-            raise BlockadeError(
+            raise EmbargoError(
                 "%s:\nerror listing host network interfaces with: "
                 "'docker run --network=host %s %s':\n%s" %
                 (_ERROR_NET_IFACE, IPTABLES_DOCKER_IMAGE, cmd, str(e)))
@@ -100,13 +100,13 @@ class BlockadeNetwork(object):
         if host_match:
             return host_match.group(1)
 
-        raise BlockadeError(
+        raise EmbargoError(
             "%s:\ncould not find expected host link %s for container %s."
-            "'ip link' output:\n %s\n\nThis may be a Blockade bug, or "
+            "'ip link' output:\n %s\n\nThis may be a Embargo bug, or "
             "there may be something unusual about your container network."
             % (_ERROR_NET_IFACE, host_idx, container_id, host_res))
 
-    def _partition_containers(self, blockade_id, partitions):
+    def _partition_containers(self, embargo_id, partitions):
         if not partitions or len(partitions) == 1:
             return
 
@@ -118,7 +118,7 @@ class BlockadeNetwork(object):
 
         for idx, chain_group in enumerate(_get_chain_groups(ip_partitions)):
             # create a new chain
-            chain_name = partition_chain_name(blockade_id, idx+1)
+            chain_name = partition_chain_name(embargo_id, idx+1)
             self.iptables.create_chain(chain_name)
 
             # direct all traffic of the chain group members to this chain
@@ -156,24 +156,24 @@ class _IPTables(object):
             raise ValueError("invalid chain")
         lines = self.call_output("-L", chain)
         if len(lines) < 2:
-            raise BlockadeError("Can't understand iptables output: \n%s" %
+            raise EmbargoError("Can't understand iptables output: \n%s" %
                                 "\n".join(lines))
 
         chain_line, header_line = lines[:2]
         if not (chain_line.startswith("Chain " + chain) and
                 header_line.startswith("target")):
-            raise BlockadeError("Can't understand iptables output: \n%s" %
+            raise EmbargoError("Can't understand iptables output: \n%s" %
                                 "\n".join(lines))
         return lines[2:]
 
-    def get_source_chains(self, blockade_id):
-        """Get a map of blockade chains IDs -> list of IPs targeted at them
+    def get_source_chains(self, embargo_id):
+        """Get a map of embargo chains IDs -> list of IPs targeted at them
 
         For figuring out which container is in which partition
         """
         result = {}
-        if not blockade_id:
-            raise ValueError("invalid blockade_id")
+        if not embargo_id:
+            raise ValueError("invalid embargo_id")
         lines = self.get_chain_rules("FORWARD")
 
         for line in lines:
@@ -181,9 +181,9 @@ class _IPTables(object):
             if len(parts) < 4:
                 continue
             try:
-                partition_index = parse_partition_index(blockade_id, parts[0])
+                partition_index = parse_partition_index(embargo_id, parts[0])
             except ValueError:
-                continue  # not a rule targetting a blockade chain
+                continue  # not a rule targetting a embargo chain
 
             source = parts[3]
             if source:
@@ -205,19 +205,19 @@ class _IPTables(object):
             if line and predicate(line):
                 self.call("-D", chain, str(index))
 
-    def delete_blockade_rules(self, blockade_id):
+    def delete_embargo_rules(self, embargo_id):
         def predicate(rule):
             target = rule.split()[0]
             try:
-                parse_partition_index(blockade_id, target)
+                parse_partition_index(embargo_id, target)
             except ValueError:
                 return False
             return True
         self.delete_rules("FORWARD", predicate)
 
-    def delete_blockade_chains(self, blockade_id):
-        if not blockade_id:
-            raise ValueError("invalid blockade_id")
+    def delete_embargo_chains(self, embargo_id):
+        if not embargo_id:
+            raise ValueError("invalid embargo_id")
 
         lines = self.call_output("-L")
         for line in lines:
@@ -225,10 +225,10 @@ class _IPTables(object):
             if len(parts) >= 2 and parts[0] == "Chain":
                 chain = parts[1]
                 try:
-                    parse_partition_index(blockade_id, chain)
+                    parse_partition_index(embargo_id, chain)
                 except ValueError:
                     continue
-                # if we are a valid blockade chain, flush and delete
+                # if we are a valid embargo chain, flush and delete
                 self.call("-F", chain)
                 self.call("-X", chain)
 
@@ -257,14 +257,14 @@ class _IPTables(object):
             raise ValueError("Invalid chain")
         self.call("-N", chain)
 
-    def clear(self, blockade_id):
-        """Remove all iptables rules and chains related to this blockade
+    def clear(self, embargo_id):
+        """Remove all iptables rules and chains related to this embargo
         """
         # first remove refererences to our custom chains
-        self.delete_blockade_rules(blockade_id)
+        self.delete_embargo_rules(embargo_id)
 
         # then remove the chains themselves
-        self.delete_blockade_chains(blockade_id)
+        self.delete_embargo_chains(embargo_id)
 
 
 class _TrafficControl(object):
@@ -315,7 +315,7 @@ def get_container_device_index(docker_client, container_id):
             error_type = "Docker"
         else:
             error_type = "Unknown"
-        raise BlockadeError(
+        raise EmbargoError(
             "%s:\n%s error attempting to exec '%s' in container %s:\n%s"
             % (_ERROR_NET_IFACE, error_type, ' '.join(cmd_args),
                 container_id, str(e)))
@@ -323,29 +323,29 @@ def get_container_device_index(docker_client, container_id):
     try:
         return int(res)
     except (ValueError, TypeError):
-        raise BlockadeError(
+        raise EmbargoError(
             "%s:\nexec '%s' in container %s returned:\n%s\n\n"
             "Ensure the container is alive and supports this exec command."
             % (_ERROR_NET_IFACE, ' '.join(cmd_args),
                 container_id, res))
 
 
-def parse_partition_index(blockade_id, chain):
-    prefix = "%s-p" % partition_chain_prefix(blockade_id)
+def parse_partition_index(embargo_id, chain):
+    prefix = "%s-p" % partition_chain_prefix(embargo_id)
     if chain and chain.startswith(prefix):
         try:
             return int(chain[len(prefix):])
         except ValueError:
             pass
-    raise ValueError("chain %s is not a blockade partition" % (chain,))
+    raise ValueError("chain %s is not a embargo partition" % (chain,))
 
 
-def partition_chain_name(blockade_id, partition_index):
-    return "%s-p%s" % (partition_chain_prefix(blockade_id), partition_index)
+def partition_chain_name(embargo_id, partition_index):
+    return "%s-p%s" % (partition_chain_prefix(embargo_id), partition_index)
 
 
-def partition_chain_prefix(blockade_id):
-    prefix = "%s%s" % (BLOCKADE_CHAIN_PREFIX, blockade_id)
+def partition_chain_prefix(embargo_id):
+    prefix = "%s%s" % (EMBARGO_CHAIN_PREFIX, embargo_id)
     return prefix[:MAX_CHAIN_PREFIX_LENGTH]
 
 

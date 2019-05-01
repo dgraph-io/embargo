@@ -27,13 +27,13 @@ import signal
 from clint.textui import puts, puts_err, colored, columns
 
 from .api import rest
-from .chaos import BlockadeChaos
-from .config import BlockadeConfig
-from .core import Blockade
-from .errors import BlockadeError
+from .chaos import EmbargoChaos
+from .config import EmbargoConfig
+from .core import Embargo
+from .errors import EmbargoError
 from .errors import InsufficientPermissionsError
-from .net import BlockadeNetwork
-from .state import BlockadeState
+from .net import EmbargoNetwork
+from .state import EmbargoState
 from .utils import check_docker
 from .host import HostExec
 
@@ -48,36 +48,36 @@ def load_config(config_file=None):
         if config_file is not None:
             with open(config_file) as f:
                 d = yaml.safe_load(f)
-                return BlockadeConfig.from_dict(d)
+                return EmbargoConfig.from_dict(d)
 
         # otherwise, try the default paths
-        for path in ("blockade.yaml", "blockade.yml"):
+        for path in ("embargo.yaml", "embargo.yml"):
             try:
                 with open(path) as f:
                     d = yaml.safe_load(f)
-                    return BlockadeConfig.from_dict(d)
+                    return EmbargoConfig.from_dict(d)
             except IOError as e:
                 if e.errno != errno.ENOENT:
                     raise
 
-        # finally, return a "blank" config. This may be an empty blockade that
+        # finally, return a "blank" config. This may be an empty embargo that
         # containers will later be added to
-        return BlockadeConfig()
+        return EmbargoConfig()
     except Exception as e:
         error = e
-    raise BlockadeError("Failed to load config (from --config, "
-                        "./blockade.yaml, or ./blockade.yml)" +
+    raise EmbargoError("Failed to load config (from --config, "
+                        "./embargo.yaml, or ./embargo.yml)" +
                         (": " + str(error) if error else ""))
 
 
-def get_blockade(config, opts):
-    blockade_id = opts.name if hasattr(opts, 'name') else None
-    state = BlockadeState(blockade_id=blockade_id,
+def get_embargo(config, opts):
+    embargo_id = opts.name if hasattr(opts, 'name') else None
+    state = EmbargoState(embargo_id=embargo_id,
                           data_dir=opts.data_dir)
-    return Blockade(config,
-                    blockade_id=blockade_id,
+    return Embargo(config,
+                    embargo_id=embargo_id,
                     state=state,
-                    network=BlockadeNetwork(config, get_host_exec()))
+                    network=EmbargoNetwork(config, get_host_exec()))
 
 
 _host_exec = None
@@ -146,12 +146,12 @@ def _add_container_selection_options(parser):
 
 def _check_container_selections(opts):
     if opts.containers and opts.all:
-        raise BlockadeError("Either specify individual containers "
+        raise EmbargoError("Either specify individual containers "
                             "or --all, but not both")
     elif opts.all and opts.random:
-        raise BlockadeError("Specify either --all or --random, but not both")
+        raise EmbargoError("Specify either --all or --random, but not both")
     elif not (opts.containers or opts.all or opts.random):
-        raise BlockadeError(
+        raise EmbargoError(
             "Specify individual containers or --all or --random")
 
     return (opts.containers or None, opts.all, opts.random)
@@ -161,7 +161,7 @@ def cmd_up(opts):
     """Start the containers and link them together
     """
     config = load_config(opts.config)
-    b = get_blockade(config, opts)
+    b = get_embargo(config, opts)
     containers = b.create(verbose=opts.verbose, force=opts.force)
     print_containers(containers, opts.json)
 
@@ -170,7 +170,7 @@ def cmd_destroy(opts):
     """Destroy all containers and restore networks
     """
     config = load_config(opts.config)
-    b = get_blockade(config, opts)
+    b = get_embargo(config, opts)
     b.destroy()
 
 
@@ -178,7 +178,7 @@ def cmd_status(opts):
     """Print status of containers and networks
     """
     config = load_config(opts.config)
-    b = get_blockade(config, opts)
+    b = get_embargo(config, opts)
     containers = b.status()
     print_containers(containers, opts.json)
 
@@ -186,7 +186,7 @@ def cmd_status(opts):
 def __with_containers(opts, func, **kwargs):
     containers, select_all, select_random = _check_container_selections(opts)
     config = load_config(opts.config)
-    b = get_blockade(config, opts)
+    b = get_embargo(config, opts)
     b.state.load()
 
     configured_containers = set(b.state.containers.keys())
@@ -198,61 +198,61 @@ def __with_containers(opts, func, **kwargs):
         kwargs['select_random'] = select_random
         return func(b, container_names, **kwargs)
     else:
-        raise BlockadeError('selection does not match any container')
+        raise EmbargoError('selection does not match any container')
 
 
 def cmd_start(opts):
     """Start some or all containers
     """
-    __with_containers(opts, Blockade.start)
+    __with_containers(opts, Embargo.start)
 
 
 def cmd_kill(opts):
     """Kill some or all containers
     """
     kill_signal = opts.signal if hasattr(opts, 'signal') else "SIGKILL"
-    __with_containers(opts, Blockade.kill, signal=kill_signal)
+    __with_containers(opts, Embargo.kill, signal=kill_signal)
 
 
 def cmd_stop(opts):
     """Stop some or all containers
     """
-    __with_containers(opts, Blockade.stop)
+    __with_containers(opts, Embargo.stop)
 
 
 def cmd_restart(opts):
     """Restart some or all containers
     """
-    __with_containers(opts, Blockade.restart)
+    __with_containers(opts, Embargo.restart)
 
 
 def cmd_flaky(opts):
     """Make the network flaky for some or all containers
     """
-    __with_containers(opts, Blockade.flaky)
+    __with_containers(opts, Embargo.flaky)
 
 
 def cmd_slow(opts):
     """Make the network slow for some or all containers
     """
-    __with_containers(opts, Blockade.slow)
+    __with_containers(opts, Embargo.slow)
 
 
 def cmd_fast(opts):
     """Restore network speed and reliability for some or all containers
     """
-    __with_containers(opts, Blockade.fast)
+    __with_containers(opts, Embargo.fast)
 
 
 def cmd_duplicate(opts):
     """Introduce packet duplication into the network of some or all containers
     """
-    __with_containers(opts, Blockade.duplicate)
+    __with_containers(opts, Embargo.duplicate)
 
 
 def cmd_chaos(opts):
     config = load_config(opts.config)
-    b = get_blockade(config, opts)
+    b = get_embargo(config, opts)
     b.state.load()
 
     event_set = None
@@ -270,7 +270,7 @@ def cmd_chaos(opts):
     def chaos_ended():
         e.set()
 
-    c = BlockadeChaos(b, b.state.blockade_id,
+    c = EmbargoChaos(b, b.state.embargo_id,
                       min_start_delay=opts.degrade_delay_min,
                       max_start_delay=opts.degrade_delay_max,
                       min_run_time=opts.degrade_runtime_min,
@@ -308,20 +308,20 @@ def cmd_partition(opts):
     in arguments will be globbed into a single implicit partition. For
     example if you have three containers: c1, c2, and c3 and you run:
 
-        blockade partition c1
+        embargo partition c1
 
     The result will be a partition with just c1 and another partition with
     c2 and c3.
 
     Alternatively, --random may be specified, and zero or more random
-    partitions will be generated by blockade.
+    partitions will be generated by embargo.
     """
     config = load_config(opts.config)
-    b = get_blockade(config, opts)
+    b = get_embargo(config, opts)
 
     if opts.random:
         if opts.partitions:
-            raise BlockadeError("Either specify individual partitions "
+            raise EmbargoError("Either specify individual partitions "
                                 "or --random, but not both")
         b.random_partition()
 
@@ -335,7 +335,7 @@ def cmd_partition(opts):
                     names.append(name)
             partitions.append(names)
         if not partitions:
-            raise BlockadeError("Either specify individual partitions "
+            raise EmbargoError("Either specify individual partitions "
                                 "or random")
         b.partition(partitions)
 
@@ -344,7 +344,7 @@ def cmd_join(opts):
     """Restore full networking between containers
     """
     config = load_config(opts.config)
-    b = get_blockade(config, opts)
+    b = get_embargo(config, opts)
     b.join()
 
 
@@ -352,39 +352,39 @@ def cmd_logs(opts):
     """Fetch the logs of a container
     """
     config = load_config(opts.config)
-    b = get_blockade(config, opts)
+    b = get_embargo(config, opts)
     puts(b.logs(opts.container).decode(encoding='UTF-8'))
 
 
 def cmd_daemon(opts):
-    """Start the Blockade REST API
+    """Start the Embargo REST API
     """
     if opts.data_dir is None:
-        raise BlockadeError("You must supply a data directory for the daemon")
+        raise EmbargoError("You must supply a data directory for the daemon")
     rest.start(data_dir=opts.data_dir, port=opts.port, debug=opts.debug,
         host_exec=get_host_exec())
 
 
 def cmd_add(opts):
-    """Add one or more existing Docker containers to a Blockade group
+    """Add one or more existing Docker containers to a Embargo group
     """
     config = load_config(opts.config)
-    b = get_blockade(config, opts)
+    b = get_embargo(config, opts)
     b.add_container(opts.containers)
 
 
 def cmd_version(opts):
-    """Show the Blockade version information
+    """Show the Embargo version information
     """
-    import blockade.version
-    puts("Blockade " + blockade.version.__version__)
+    import embargo.version
+    puts("Embargo " + embargo.version.__version__)
 
 
 def cmd_events(opts):
-    """Get the event log for a given blockade
+    """Get the event log for a given embargo
     """
     config = load_config(opts.config)
-    b = get_blockade(config, opts)
+    b = get_embargo(config, opts)
 
     if opts.json:
         outf = None
@@ -443,14 +443,14 @@ _CMDS = (("up", cmd_up),
 
 
 def setup_parser():
-    parser = argparse.ArgumentParser(description='Blockade')
-    parser.add_argument("--config", "-c", metavar="blockade.yaml",
+    parser = argparse.ArgumentParser(description='Embargo')
+    parser.add_argument("--config", "-c", metavar="embargo.yaml",
                         help="Config YAML. Looks in CWD if not specified.")
     parser.add_argument(
         "--data-dir", "-d", metavar="DIR", action="store",
         help="Base directory for state data. CWD if not specified.")
     parser.add_argument("-n", "--name", metavar="NAME",
-                        help="Unique name for blockade. "
+                        help="Unique name for embargo. "
                         "Default: basename of working directory")
     parser.add_argument("--verbose", "-v", action="store_true",
                         help="Print verbose output")
@@ -509,7 +509,7 @@ def setup_parser():
 
     command_parsers["add"].add_argument(
         "containers", nargs="*", metavar='CONTAINER',
-        help="Docker container to add to the Blockade group")
+        help="Docker container to add to the Embargo group")
 
     command_parsers["chaos"].add_argument(
             "--events",
@@ -517,19 +517,19 @@ def setup_parser():
                  "enabled by default.")
     command_parsers["chaos"].add_argument(
             "--degrade-delay-min",
-            help="The minimum amount of time to wait between blockade "
+            help="The minimum amount of time to wait between embargo "
                  "degradation event in milliseconds.", type=int, default=30000)
     command_parsers["chaos"].add_argument(
             "--degrade-delay-max",
-            help="The maximum amount of time to wait between blockade "
+            help="The maximum amount of time to wait between embargo "
                  "degradation event.", type=int, default=300000)
     command_parsers["chaos"].add_argument(
             "--degrade-runtime-min",
-            help="The minimum amount of time to run a blockade degradation "
+            help="The minimum amount of time to run a embargo degradation "
                  "event in milliseconds.", type=int, default=30000)
     command_parsers["chaos"].add_argument(
             "--degrade-runtime-max",
-            help="The maximum amount of time to run a blockade degradation "
+            help="The maximum amount of time to run a embargo degradation "
                  "event in milliseconds.", type=int, default=300000)
     command_parsers["chaos"].add_argument(
             "--containers-at-once-min",
@@ -554,7 +554,7 @@ def setup_parser():
 
 def _setup_logging(opts):
     if opts.logconf is None:
-        l = logging.getLogger("blockade")
+        l = logging.getLogger("embargo")
         if len(l.handlers) > 0:
             # this happens if logging is already setup.  It only comes up in
             # tests
@@ -571,7 +571,7 @@ def _setup_logging(opts):
         l.addHandler(handler)
         return
     if not os.path.exists(opts.logconf):
-        raise BlockadeError(
+        raise EmbargoError(
                 "The logging config file %s does not exist" % opts.logconf)
     with open(opts.logconf, 'r') as f:
         config = yaml.load(f.read())
@@ -584,7 +584,7 @@ def run_cleanups():
         get_host_exec().close()
     except:
         puts_err(
-            colored.red("\nUnexpected error in cleanup! This may be a Blockade bug.\n"))
+            colored.red("\nUnexpected error in cleanup! This may be a Embargo bug.\n"))
         traceback.print_exc()
 
 
@@ -619,7 +619,7 @@ def main(args=None):
         puts_err(colored.red(
                  "\nInsufficient permissions error:\n") + str(e) + "\n")
         rc = 1
-    except BlockadeError as e:
+    except EmbargoError as e:
         puts_err(colored.red("\nError:\n") + str(e) + "\n")
         rc = 1
 
@@ -634,7 +634,7 @@ def main(args=None):
 
     except:
         puts_err(
-            colored.red("\nUnexpected error! This may be a Blockade bug.\n"))
+            colored.red("\nUnexpected error! This may be a Embargo bug.\n"))
         traceback.print_exc()
         rc = 2
 

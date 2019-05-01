@@ -28,13 +28,13 @@ import six
 import mock
 from clint.textui.colored import ColoredString
 
-from blockade.tests import unittest
-import blockade.cli
+from . import unittest
+from .. import cli
 from .util import wait
 from .helpers import HostExecHelper
 
 
-INT_ENV = "BLOCKADE_INTEGRATION_TESTS"
+INT_ENV = "EMBARGO_INTEGRATION_TESTS"
 INT_SKIP = (not os.getenv(INT_ENV), "export %s=1 to run" % INT_ENV)
 
 
@@ -76,7 +76,7 @@ class IntegrationTests(unittest.TestCase):
     Tests that are Linux and Docker only should be decorated with:
         @unittest.skipIf(*INT_SKIP)
 
-    They will only be run when BLOCKADE_INTEGRATION_TESTS=1 env is set.
+    They will only be run when EMBARGO_INTEGRATION_TESTS=1 env is set.
     """
 
     sysexit_patch = None
@@ -114,18 +114,18 @@ class IntegrationTests(unittest.TestCase):
 
         self.host_exec_helper.tearDown()
 
-    def call_blockade(self, *args):
+    def call_embargo(self, *args):
         stdout = StringIO()
         stderr = StringIO()
-        with mock.patch("blockade.cli.puts") as mock_puts:
+        with mock.patch("embargo.cli.puts") as mock_puts:
             mock_puts.side_effect = lambda s: stdout.write(coerce_output(s))
 
-            with mock.patch("blockade.cli.puts_err") as mock_puts_err:
+            with mock.patch("embargo.cli.puts_err") as mock_puts_err:
                 mock_puts_err.side_effect = lambda s: stderr.write(
                     coerce_output(s))
 
                 try:
-                    blockade.cli.main(args)
+                    cli.main(args)
                 except FakeExit as e:
                     if e.rc != 0:
                         e.stderr = stderr.getvalue()
@@ -136,76 +136,76 @@ class IntegrationTests(unittest.TestCase):
     def test_badargs(self):
         with mock.patch("sys.stderr"):
             with self.assertRaises(FakeExit) as cm:
-                self.call_blockade("--notarealarg")
+                self.call_embargo("--notarealarg")
 
             self.assertEqual(cm.exception.rc, 2)
 
     def test_version(self):
-        stdout, _ = self.call_blockade("version")
-        self.assertIn(blockade.__version__, stdout)
+        stdout, _ = self.call_embargo("version")
+        self.assertIn(embargo.__version__, stdout)
 
     @unittest.skipIf(*INT_SKIP)
     def test_containers(self):
-        config_path = example_config_path("sleep/blockade.yaml")
+        config_path = example_config_path("sleep/embargo.yaml")
 
         # TODO make this better. so far we just walk through all
         # the major operations, but don't really assert anything
         # other than exit code.
         try:
-            self.call_blockade("-c", config_path, "up")
+            self.call_embargo("-c", config_path, "up")
 
-            self.call_blockade("-c", config_path, "status")
-            stdout, _ = self.call_blockade("-c", config_path, "status",
+            self.call_embargo("-c", config_path, "status")
+            stdout, _ = self.call_embargo("-c", config_path, "status",
                                            "--json")
             parsed = json.loads(stdout)
             self.assertEqual(len(parsed), 3)
 
-            self.call_blockade("-c", config_path, "flaky", "c1")
-            self.call_blockade("-c", config_path, "slow", "c2", "c3")
-            self.call_blockade("-c", config_path, "duplicate", "c2", "c3")
-            self.call_blockade("-c", config_path, "fast", "c3")
+            self.call_embargo("-c", config_path, "flaky", "c1")
+            self.call_embargo("-c", config_path, "slow", "c2", "c3")
+            self.call_embargo("-c", config_path, "duplicate", "c2", "c3")
+            self.call_embargo("-c", config_path, "fast", "c3")
 
             # make sure it is harmless for call fast when nothing is slow
-            self.call_blockade("-c", config_path, "fast", "--all")
+            self.call_embargo("-c", config_path, "fast", "--all")
 
             with self.assertRaises(FakeExit):
-                self.call_blockade("-c", config_path, "slow", "notarealnode")
+                self.call_embargo("-c", config_path, "slow", "notarealnode")
 
-            self.call_blockade("-c", config_path, "partition", "c1,c2", "c3")
-            self.call_blockade("-c", config_path, "join")
+            self.call_embargo("-c", config_path, "partition", "c1,c2", "c3")
+            self.call_embargo("-c", config_path, "join")
 
-            stdout, _ = self.call_blockade("-c", config_path, "logs", "c1")
+            stdout, _ = self.call_embargo("-c", config_path, "logs", "c1")
             self.assertEquals("I am c1", stdout.strip())
 
         finally:
             try:
-                self.call_blockade("-c", config_path, "destroy")
+                self.call_embargo("-c", config_path, "destroy")
             except Exception:
-                print("Failed to destroy Blockade!")
+                print("Failed to destroy Embargo!")
                 traceback.print_exc(file=sys.stdout)
 
     @unittest.skipIf(*INT_SKIP)
     def test_events(self):
-        config_path = example_config_path("sleep/blockade.yaml")
+        config_path = example_config_path("sleep/embargo.yaml")
 
         try:
-            self.call_blockade("-c", config_path, "up")
-            self.call_blockade("-c", config_path, "flaky", "c1")
-            self.call_blockade("-c", config_path, "slow", "c2", "c3")
+            self.call_embargo("-c", config_path, "up")
+            self.call_embargo("-c", config_path, "flaky", "c1")
+            self.call_embargo("-c", config_path, "slow", "c2", "c3")
 
             expected_events = ["flaky", "slow"]
 
             # call events in all 3 ways
-            stdout, _ = self.call_blockade("-c", config_path, "events")
+            stdout, _ = self.call_embargo("-c", config_path, "events")
             self.assertTrue(stdout.strip())  # just ensure there IS output
 
-            stdout, _ = self.call_blockade("-c", config_path, "events",
+            stdout, _ = self.call_embargo("-c", config_path, "events",
                                            "--json")
             parsed = json.loads(stdout)
             events = [e["event"] for e in parsed["events"]]
             self.assertEquals(expected_events, events)
 
-            stdout, _ = self.call_blockade("-c", config_path, "events",
+            stdout, _ = self.call_embargo("-c", config_path, "events",
                                            "--json", "--output", "output.json")
             self.assertEquals(0, len(stdout.strip()))
             with open("output.json") as f:
@@ -215,16 +215,16 @@ class IntegrationTests(unittest.TestCase):
 
         finally:
             try:
-                self.call_blockade("-c", config_path, "destroy")
+                self.call_embargo("-c", config_path, "destroy")
             except Exception:
-                print("Failed to destroy Blockade!")
+                print("Failed to destroy Embargo!")
                 traceback.print_exc(file=sys.stdout)
 
     @unittest.skipIf(*INT_SKIP)
     def test_containers_name_check(self):
 
         try:
-            config_path = "./blockade.yaml"
+            config_path = "./embargo.yaml"
             with open(config_path, "w") as f:
                 f.write(dedent('''\
                     containers:
@@ -238,29 +238,29 @@ class IntegrationTests(unittest.TestCase):
                         links: ["zzz"]
                     '''))
 
-            self.call_blockade("-c", config_path, "up")
+            self.call_embargo("-c", config_path, "up")
 
-            stdout, _ = self.call_blockade("-c", config_path, "status", "--json")
+            stdout, _ = self.call_embargo("-c", config_path, "status", "--json")
             parsed = json.loads(stdout)
             # Make sure the container name of zzz is not the pseudo-name created
-            # by the link (returned as /blockade-86c6c42ff9-aaa/zzz from the
-            # Docker API, reduced to aaa/zzz by blockade. Container names are
+            # by the link (returned as /embargo-86c6c42ff9-aaa/zzz from the
+            # Docker API, reduced to aaa/zzz by embargo. Container names are
             # (as of 1.7) returned alphabetically, hence the names aaa and zzz.
             cnames = sorted([c["name"] for c in parsed])
             self.assertEqual(cnames, ["aaa", "zzz"])
 
         finally:
             try:
-                self.call_blockade("-c", config_path, "destroy")
+                self.call_embargo("-c", config_path, "destroy")
             except Exception:
-                print("Failed to destroy Blockade!")
+                print("Failed to destroy Embargo!")
                 traceback.print_exc(file=sys.stdout)
 
     @unittest.skipIf(*INT_SKIP)
     def test_containers_dns_discovery(self):
 
         try:
-            config_path = "./blockade.yaml"
+            config_path = "./embargo.yaml"
             with open(config_path, "w") as f:
                 f.write(dedent('''\
                     containers:
@@ -276,33 +276,33 @@ class IntegrationTests(unittest.TestCase):
                       driver: udn
                     '''))
 
-            self.call_blockade("-c", config_path, "up")
+            self.call_embargo("-c", config_path, "up")
 
             # If container exited after this sleep, it probably means that
             # ping wasn't able to resolve neighbour host
             time.sleep(6)
 
-            stdout, _ = self.call_blockade("-c", config_path, "status", "--json")
+            stdout, _ = self.call_embargo("-c", config_path, "status", "--json")
             parsed = json.loads(stdout)
             statuses = [c["status"] for c in parsed]
             self.assertEqual(statuses, ["UP", "UP"])
 
         finally:
             try:
-                self.call_blockade("-c", config_path, "destroy")
+                self.call_embargo("-c", config_path, "destroy")
             except Exception:
-                print("Failed to destroy Blockade!")
+                print("Failed to destroy Embargo!")
                 traceback.print_exc(file=sys.stdout)
 
     @unittest.skipIf(*INT_SKIP)
     def test_ping_link_ordering(self):
-        config_path = example_config_path("ping/blockade.yaml")
+        config_path = example_config_path("ping/embargo.yaml")
 
         try:
-            self.call_blockade("-c", config_path, "up")
+            self.call_embargo("-c", config_path, "up")
 
-            self.call_blockade("-c", config_path, "status")
-            stdout, _ = self.call_blockade("-c", config_path, "status",
+            self.call_embargo("-c", config_path, "status")
+            stdout, _ = self.call_embargo("-c", config_path, "status",
                                            "--json")
             parsed = json.loads(stdout)
             self.assertEqual(len(parsed), 3)
@@ -317,28 +317,28 @@ class IntegrationTests(unittest.TestCase):
 
         finally:
             try:
-                self.call_blockade("-c", config_path, "destroy")
+                self.call_embargo("-c", config_path, "destroy")
             except Exception:
-                print("Failed to destroy Blockade!")
+                print("Failed to destroy Embargo!")
                 traceback.print_exc(file=sys.stdout)
 
     @unittest.skipIf(*INT_SKIP)
     def test_duplicate(self):
-        config_path = example_config_path("ping/blockade.yaml")
+        config_path = example_config_path("ping/embargo.yaml")
 
         try:
-            self.call_blockade("-c", config_path, "up")
+            self.call_embargo("-c", config_path, "up")
 
-            self.call_blockade("-c", config_path, "status")
-            stdout, _ = self.call_blockade("-c", config_path, "status",
+            self.call_embargo("-c", config_path, "status")
+            stdout, _ = self.call_embargo("-c", config_path, "status",
                                            "--json")
             parsed = json.loads(stdout)
             self.assertEqual(len(parsed), 3)
 
-            self.call_blockade("-c", config_path, "duplicate", "c2")
+            self.call_embargo("-c", config_path, "duplicate", "c2")
 
             def predicate():
-                stdout, _ = self.call_blockade("-c", config_path, "logs", "c2")
+                stdout, _ = self.call_embargo("-c", config_path, "logs", "c2")
                 return "DUP!" in stdout
 
             # wait for a duplicate packet to show up in the ping output
@@ -346,36 +346,36 @@ class IntegrationTests(unittest.TestCase):
 
         finally:
             try:
-                self.call_blockade("-c", config_path, "destroy")
+                self.call_embargo("-c", config_path, "destroy")
             except Exception:
-                print("Failed to destroy Blockade!")
+                print("Failed to destroy Embargo!")
                 traceback.print_exc(file=sys.stdout)
 
     @unittest.skipIf(*INT_SKIP)
     def test_veth_update(self):
-        config_path = example_config_path("sleep/blockade.yaml")
+        config_path = example_config_path("sleep/embargo.yaml")
 
         try:
-            self.call_blockade("-c", config_path, "up")
+            self.call_embargo("-c", config_path, "up")
 
-            self.call_blockade("-c", config_path, "stop", "c1", "c2")
-            self.call_blockade("-c", config_path, "start", "c1", "c2")
-            self.call_blockade("-c", config_path, "slow", "c1", "c2")
+            self.call_embargo("-c", config_path, "stop", "c1", "c2")
+            self.call_embargo("-c", config_path, "start", "c1", "c2")
+            self.call_embargo("-c", config_path, "slow", "c1", "c2")
         finally:
             try:
-                self.call_blockade("-c", config_path, "destroy")
+                self.call_embargo("-c", config_path, "destroy")
             except Exception:
-                print("Failed to destroy Blockade!")
+                print("Failed to destroy Embargo!")
                 traceback.print_exc(file=sys.stdout)
 
     @unittest.skipIf(*INT_SKIP)
     def test_restart_container_with_docker_then_action(self):
-        config_path = example_config_path("sleep/blockade.yaml")
+        config_path = example_config_path("sleep/embargo.yaml")
 
         try:
-            self.call_blockade("-c", config_path, "up")
+            self.call_embargo("-c", config_path, "up")
 
-            stdout, _ = self.call_blockade("-c", config_path, "status",
+            stdout, _ = self.call_embargo("-c", config_path, "status",
                                            "--json")
             parsed = json.loads(stdout)
             # find the c1 container ID
@@ -391,10 +391,10 @@ class IntegrationTests(unittest.TestCase):
             docker_client.stop(kill_id)
             docker_client.start(kill_id)
 
-            self.call_blockade("-c", config_path, "slow", "c1")
+            self.call_embargo("-c", config_path, "slow", "c1")
         finally:
             try:
-                self.call_blockade("-c", config_path, "destroy")
+                self.call_embargo("-c", config_path, "destroy")
             except Exception:
-                print("Failed to destroy Blockade!")
+                print("Failed to destroy Embargo!")
                 traceback.print_exc(file=sys.stdout)

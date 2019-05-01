@@ -20,7 +20,7 @@ import logging
 
 import docker
 
-import blockade.host
+import ..host
 
 
 _logger = logging.getLogger(__name__)
@@ -28,12 +28,12 @@ _logger = logging.getLogger(__name__)
 
 class HostExecHelper(object):
     def __init__(self):
-        self.prefix = "blockade-test-" + uuid.uuid4().hex[:8]
+        self.prefix = "embargo-test-" + uuid.uuid4().hex[:8]
         self.docker = docker.APIClient(
             **docker.utils.kwargs_from_env(assert_hostname=False))
 
     def setup_prefix_env(self):
-        os.environ[blockade.host.CONTAINER_PREFIX_ENV] = self.prefix
+        os.environ[embargo.host.CONTAINER_PREFIX_ENV] = self.prefix
 
     def tearDown(self):
         containers = self.find_created_containers()

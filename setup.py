@@ -3,7 +3,7 @@
 import sys
 import os
 from setuptools import setup, find_packages
-from blockade import __version__
+from embargo import __version__
 
 with open("requirements.txt") as fh:
     requires = fh.readlines()
@@ -23,6 +23,8 @@ setup(
     long_description=readme + '\n\n' + changes + '\n\n',
     author='David LaBissoniere',
     author_email='david@labisso.com',
+    maintainer='Martin Martinez Rivera',
+    maintainer_email='martinmr@dgraph.io',
     url="https://github.com/dgraph-io/embargo",
     packages=find_packages(),
     include_package_data=True,
@@ -33,7 +35,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'embargo=blockade.cli:main'
+            'embargo=embargo.cli:main'
         ]
     },
     zip_safe=False,

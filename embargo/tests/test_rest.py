@@ -14,10 +14,10 @@
 # limitations under the License.
 #
 
-from blockade.api.manager import BlockadeManager
-from blockade.api.rest import app
-from blockade.core import Blockade
-from blockade.tests import unittest
+from ..api.manager import EmbargoManager
+from ..api.rest import app
+from ..core import Embargo
+from . import unittest
 
 import json
 import mock
@@ -25,12 +25,12 @@ import mock
 
 class RestTests(unittest.TestCase):
 
-    name = "BlockadeRestTests"
+    name = "EmbargoRestTests"
     headers = {'Content-Type': 'application/json'}
 
     def setUp(self):
         self.client = app.test_client()
-        self.blockade = mock.MagicMock()
+        self.embargo = mock.MagicMock()
 
     def test_network_state_missing_state(self):
         data = '''
@@ -39,11 +39,11 @@ class RestTests(unittest.TestCase):
                 "container_names": "c1"
             }
         '''
-        with mock.patch.object(BlockadeManager,
-                               'blockade_exists',
+        with mock.patch.object(EmbargoManager,
+                               'embargo_exists',
                                return_value=True):
 
-            result = self.client.post('/blockade/%s/network_state' % self.name,
+            result = self.client.post('/embargo/%s/network_state' % self.name,
                                       headers=self.headers,
                                       data=data)
 
@@ -56,11 +56,11 @@ class RestTests(unittest.TestCase):
                 "wrong_key": "c1"
             }
         '''
-        with mock.patch.object(BlockadeManager,
-                               'blockade_exists',
+        with mock.patch.object(EmbargoManager,
+                               'embargo_exists',
                                return_value=True):
 
-            result = self.client.post('/blockade/%s/network_state' % self.name,
+            result = self.client.post('/embargo/%s/network_state' % self.name,
                                       headers=self.headers,
                                       data=data)
 
@@ -73,19 +73,19 @@ class RestTests(unittest.TestCase):
                 "container_names": ["c1"]
             }
         '''
-        with mock.patch.object(BlockadeManager,
-                               'get_blockade',
-                               return_value=self.blockade), \
-             mock.patch.object(BlockadeManager,
-                               'blockade_exists',
+        with mock.patch.object(EmbargoManager,
+                               'get_embargo',
+                               return_value=self.embargo), \
+             mock.patch.object(EmbargoManager,
+                               'embargo_exists',
                                return_value=True):
 
-            result = self.client.post('/blockade/%s/network_state' % self.name,
+            result = self.client.post('/embargo/%s/network_state' % self.name,
                                       headers=self.headers,
                                       data=data)
 
             self.assertEqual(204, result.status_code)
-            self.assertEqual(1, self.blockade.fast.call_count)
+            self.assertEqual(1, self.embargo.fast.call_count)
 
     def test_action_missing_command(self):
         data = '''
@@ -94,11 +94,11 @@ class RestTests(unittest.TestCase):
                 "container_names": "c1"
             }
         '''
-        with mock.patch.object(BlockadeManager,
-                               'blockade_exists',
+        with mock.patch.object(EmbargoManager,
+                               'embargo_exists',
                                return_value=True):
 
-            result = self.client.post('/blockade/%s/action' % self.name,
+            result = self.client.post('/embargo/%s/action' % self.name,
                                       headers=self.headers,
                                       data=data)
 
@@ -111,11 +111,11 @@ class RestTests(unittest.TestCase):
                 "wrong_key": "c1"
             }
         '''
-        with mock.patch.object(BlockadeManager,
-                               'blockade_exists',
+        with mock.patch.object(EmbargoManager,
+                               'embargo_exists',
                                return_value=True):
 
-            result = self.client.post('/blockade/%s/action' % self.name,
+            result = self.client.post('/embargo/%s/action' % self.name,
                                       headers=self.headers,
                                       data=data)
 
@@ -128,48 +128,48 @@ class RestTests(unittest.TestCase):
                 "container_names": ["c1"]
             }
         '''
-        with mock.patch.object(BlockadeManager,
-                               'get_blockade',
-                               return_value=self.blockade), \
-             mock.patch.object(BlockadeManager,
-                               'blockade_exists',
+        with mock.patch.object(EmbargoManager,
+                               'get_embargo',
+                               return_value=self.embargo), \
+             mock.patch.object(EmbargoManager,
+                               'embargo_exists',
                                return_value=True):
 
-            result = self.client.post('/blockade/%s/action' % self.name,
+            result = self.client.post('/embargo/%s/action' % self.name,
                                       headers=self.headers,
                                       data=data)
 
             self.assertEqual(204, result.status_code)
-            self.assertEqual(1, self.blockade.start.call_count)
+            self.assertEqual(1, self.embargo.start.call_count)
 
     def test_delete_partition(self):
-        with mock.patch.object(BlockadeManager,
-                               'get_blockade',
-                               return_value=self.blockade), \
-             mock.patch.object(BlockadeManager,
-                               'blockade_exists',
+        with mock.patch.object(EmbargoManager,
+                               'get_embargo',
+                               return_value=self.embargo), \
+             mock.patch.object(EmbargoManager,
+                               'embargo_exists',
                                return_value=True):
 
-            result = self.client.delete('/blockade/%s/partitions' % self.name,
+            result = self.client.delete('/embargo/%s/partitions' % self.name,
                                         headers=self.headers)
 
             self.assertEqual(204, result.status_code)
-            self.assertEqual(1, self.blockade.join.call_count)
+            self.assertEqual(1, self.embargo.join.call_count)
 
     def test_random_partition(self):
-        with mock.patch.object(BlockadeManager,
-                               'get_blockade',
-                               return_value=self.blockade), \
-             mock.patch.object(BlockadeManager,
-                               'blockade_exists',
+        with mock.patch.object(EmbargoManager,
+                               'get_embargo',
+                               return_value=self.embargo), \
+             mock.patch.object(EmbargoManager,
+                               'embargo_exists',
                                return_value=True):
 
-            result = self.client.post('/blockade/%s/partitions' % self.name,
+            result = self.client.post('/embargo/%s/partitions' % self.name,
                                       headers=self.headers,
                                       query_string={'random': 'True'})
 
             self.assertEqual(204, result.status_code)
-            self.assertEqual(1, self.blockade.random_partition.call_count)
+            self.assertEqual(1, self.embargo.random_partition.call_count)
 
     def test_partitions(self):
         data = '''
@@ -177,65 +177,65 @@ class RestTests(unittest.TestCase):
                 "partitions": [["c1"], ["c2"]]
             }
         '''
-        with mock.patch.object(BlockadeManager,
-                               'get_blockade',
-                               return_value=self.blockade), \
-             mock.patch.object(BlockadeManager,
-                               'blockade_exists',
+        with mock.patch.object(EmbargoManager,
+                               'get_embargo',
+                               return_value=self.embargo), \
+             mock.patch.object(EmbargoManager,
+                               'embargo_exists',
                                return_value=True):
 
-            result = self.client.post('/blockade/%s/partitions' % self.name,
+            result = self.client.post('/embargo/%s/partitions' % self.name,
                                       headers=self.headers,
                                       data=data)
 
             self.assertEqual(204, result.status_code)
-            self.assertEqual(1, self.blockade.partition.call_count)
+            self.assertEqual(1, self.embargo.partition.call_count)
 
 
-    def test_delete_blockade(self):
-        with mock.patch.object(BlockadeManager,
-                               'get_blockade',
-                               return_value=self.blockade), \
-             mock.patch.object(BlockadeManager,
-                               'blockade_exists',
+    def test_delete_embargo(self):
+        with mock.patch.object(EmbargoManager,
+                               'get_embargo',
+                               return_value=self.embargo), \
+             mock.patch.object(EmbargoManager,
+                               'embargo_exists',
                                return_value=True):
 
-            result = self.client.delete('/blockade/%s' % self.name)
+            result = self.client.delete('/embargo/%s' % self.name)
 
             self.assertEqual(204, result.status_code)
-            self.assertEqual(1, self.blockade.destroy.call_count)
+            self.assertEqual(1, self.embargo.destroy.call_count)
 
-    def test_get_blockade(self):
-        with mock.patch.object(BlockadeManager,
-                               'get_blockade',
-                               return_value=self.blockade), \
-             mock.patch.object(BlockadeManager,
-                               'blockade_exists',
+    def test_get_embargo(self):
+        with mock.patch.object(EmbargoManager,
+                               'get_embargo',
+                               return_value=self.embargo), \
+             mock.patch.object(EmbargoManager,
+                               'embargo_exists',
                                return_value=True):
 
-            result = self.client.get('/blockade/%s' % self.name)
+            result = self.client.get('/embargo/%s' % self.name)
 
             result_data = json.loads(result.get_data(as_text=True))
             self.assertEqual(200, result.status_code)
             self.assertTrue('containers' in result_data)
 
-    def test_get_all_blockades(self):
-        blockades = {
-            'blockade1': 'abc',
-            'blockade2': 'def',
-            'blockade3': 'xyz'
+    def test_get_all_embargos(self):
+        embargos = {
+            'embargo1': 'abc',
+            'embargo2': 'def',
+            'embargo3': 'xyz'
         }
-        with mock.patch.object(BlockadeManager,
-                               'get_all_blockade_names',
-                               return_value=list(blockades.keys())):
-            result = self.client.get('/blockade', headers=self.headers)
+        with mock.patch.object(EmbargoManager,
+                               'get_all_embargo_names',
+                               return_value=list(embargos.keys())):
+            result = self.client.get('/embargo', headers=self.headers)
             result_data = json.loads(result.get_data(as_text=True))
             self.assertEqual(200, result.status_code)
-            self.assertTrue('blockades' in result_data)
-            for key in blockades.keys():
-                self.assertTrue(key in result_data.get('blockades'))
+            self.assertTrue('embargos' in result_data)
+            for key in embargos.keys():
+                self.assertTrue(key in result_data.get('embargos'))
 
-    def test_create_blockade(self):
+    def test_create_embargo(self):
         data = '''
             {
                 "containers": {
@@ -252,15 +252,15 @@ class RestTests(unittest.TestCase):
                 }
             }
         '''
-        with mock.patch.object(BlockadeManager,
-                               'get_blockade',
-                               return_value=self.blockade):
+        with mock.patch.object(EmbargoManager,
+                               'get_embargo',
+                               return_value=self.embargo):
 
-            result = self.client.post('/blockade/%s' % self.name,
+            result = self.client.post('/embargo/%s' % self.name,
                                       headers=self.headers,
                                       data=data)
 
-            self.assertEqual(1, self.blockade.create.call_count)
+            self.assertEqual(1, self.embargo.create.call_count)
             self.assertEqual(204, result.status_code)
 
 
@@ -270,16 +270,16 @@ class RestTests(unittest.TestCase):
                 "container_ids": ["docker_container_id"]
             }
         '''
-        with mock.patch.object(BlockadeManager,
-                               'get_blockade',
-                               return_value=self.blockade), \
-             mock.patch.object(BlockadeManager,
-                               'blockade_exists',
+        with mock.patch.object(EmbargoManager,
+                               'get_embargo',
+                               return_value=self.embargo), \
+             mock.patch.object(EmbargoManager,
+                               'embargo_exists',
                                return_value=True):
 
-            result = self.client.put('/blockade/%s' % self.name,
+            result = self.client.put('/embargo/%s' % self.name,
                                      headers=self.headers,
                                      data=data)
 
             self.assertEqual(204, result.status_code)
-            self.assertEqual(1, self.blockade.add_container.call_count)
+            self.assertEqual(1, self.embargo.add_container.call_count)

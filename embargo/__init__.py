@@ -14,5 +14,5 @@
 # limitations under the License.
 #
 
-import blockade.version
-__version__ = blockade.version.__version__
+import embargo.version
+__version__ = embargo.version.__version__

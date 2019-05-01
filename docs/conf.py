@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# blockade documentation build configuration file, created by
+# embargo documentation build configuration file, created by
 # sphinx-quickstart on Fri Feb  7 13:21:50 2014.
 #
 # This file is execfile()d with the current directory set to its
@@ -43,7 +43,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'blockade'
+project = u'embargo'
 copyright = u'Quest Software and contributors'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -51,9 +51,9 @@ copyright = u'Quest Software and contributors'
 # built documents.
 #
 
-VERSION_PY = os.path.join(os.path.dirname(__file__), "../blockade/version.py")
+VERSION_PY = os.path.join(os.path.dirname(__file__), "../embargo/version.py")
 
-# this execs blockade/version.py on it's own and brings __version__ into this
+# this execs embargo/version.py on it's own and brings __version__ into this
 # package. Ugliness is to support both Python 2 and 3.
 __version__ = None
 with open(VERSION_PY) as f:
@@ -188,7 +188,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'blockadedoc'
+htmlhelp_basename = 'embargodoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -208,7 +208,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'blockade.tex', u'blockade Documentation',
+  ('index', 'embargo.tex', u'embargo Documentation',
    u'Quest', 'manual'),
 ]
 
@@ -238,7 +238,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'blockade', u'blockade Documentation',
+    ('index', 'embargo', u'embargo Documentation',
      [u'Quest'], 1)
 ]
 
@@ -252,8 +252,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'blockade', u'blockade Documentation',
-   u'Quest', 'blockade', 'One line description of project.',
+  ('index', 'embargo', u'embargo Documentation',
+   u'Quest', 'embargo', 'One line description of project.',
    'Miscellaneous'),
 ]
 

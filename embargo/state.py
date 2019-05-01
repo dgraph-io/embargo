@@ -22,59 +22,59 @@ import re
 import yaml
 
 from .errors import AlreadyInitializedError
-from .errors import BlockadeError
+from .errors import EmbargoError
 from .errors import InconsistentStateError
-from .errors import InvalidBlockadeName
+from .errors import InvalidEmbargoName
 from .errors import NotInitializedError
 
 
-class BlockadeState(object):
-    '''Blockade state related functionality'''
+class EmbargoState(object):
+    '''Embargo state related functionality'''
 
     def __init__(self,
-                 blockade_id=None,
+                 embargo_id=None,
                  data_dir=None,
                  state_file=None,
                  state_version=1):
 
-        if blockade_id:
-            if re.match(r"^[a-zA-Z0-9-.]+$", blockade_id) is None:
-                raise InvalidBlockadeName("'%s' is an invalid blockade ID. "
+        if embargo_id:
+            if re.match(r"^[a-zA-Z0-9-.]+$", embargo_id) is None:
+                raise InvalidEmbargoName("'%s' is an invalid embargo ID. "
                                           "You may use only [a-zA-Z0-9-.]")
 
         # If no data_dir specificed put state file in:
-        #   CWD/.blockade/
+        #   CWD/.embargo/
         # If data_dir specified put state file in:
-        #   data_dir/.blockade/
-        # If data_dir and blockade_id specified put state file in:
-        #   data_dir/.blockade/blockade_id/
+        #   data_dir/.embargo/
+        # If data_dir and embargo_id specified put state file in:
+        #   data_dir/.embargo/embargo_id/
         if data_dir:
             self._data_dir = data_dir
-            self._state_dir = os.path.join(data_dir, ".blockade")
+            self._state_dir = os.path.join(data_dir, ".embargo")
         else:
             self._data_dir = None
-            self._state_dir = os.path.join(os.getcwd(), ".blockade")
+            self._state_dir = os.path.join(os.getcwd(), ".embargo")
 
-        if data_dir and blockade_id:
-            self._state_dir = os.path.join(self._state_dir, blockade_id)
+        if data_dir and embargo_id:
+            self._state_dir = os.path.join(self._state_dir, embargo_id)
 
         self._state_dir = os.path.abspath(self._state_dir)
 
         state_file = state_file or "state.yml"
         self._state_file = os.path.join(self._state_dir, state_file)
 
-        self._blockade_id = blockade_id or self._get_blockade_id_from_cwd()
+        self._embargo_id = embargo_id or self._get_embargo_id_from_cwd()
         self._state_version = state_version
         self._containers = {}
 
     @property
-    def blockade_id(self):
-        return self._blockade_id
+    def embargo_id(self):
+        return self._embargo_id
 
     @property
-    def blockade_net_name(self):
-        '''Generate blockade nework name based on the blockade_id'''
-        return "%s_net" % self._blockade_id
+    def embargo_net_name(self):
+        '''Generate embargo nework name based on the embargo_id'''
+        return "%s_net" % self._embargo_id
 
     @property
     def containers(self):
@@ -97,7 +97,7 @@ class BlockadeState(object):
         self.__write(containers, initialize=True)
 
     def exists(self):
-        '''Checks whether a blockade state file already exists'''
+        '''Checks whether a embargo state file already exists'''
         return os.path.isfile(self._state_file)
 
     def update(self, containers):
@@ -106,35 +106,35 @@ class BlockadeState(object):
         self.__write(containers, initialize=False)
 
     def load(self):
-        '''Try to load a blockade state file in the current directory'''
+        '''Try to load a embargo state file in the current directory'''
         try:
             with open(self._state_file) as f:
                 state = yaml.safe_load(f)
                 self._containers = state['containers']
         except (IOError, OSError) as err:
             if err.errno == errno.ENOENT:
-                raise NotInitializedError("No blockade exists in this context")
-            raise InconsistentStateError("Failed to load Blockade state: "
+                raise NotInitializedError("No embargo exists in this context")
+            raise InconsistentStateError("Failed to load Embargo state: "
                                          + str(err))
         except Exception as err:
-            raise InconsistentStateError("Failed to load Blockade state: "
+            raise InconsistentStateError("Failed to load Embargo state: "
                                          + str(err))
 
     def destroy(self):
         '''Try to remove the current state file and directory'''
         self._state_delete()
 
-    def _get_blockade_id_from_cwd(self, cwd=None):
-        '''Generate a new blockade ID based on the CWD'''
+    def _get_embargo_id_from_cwd(self, cwd=None):
+        '''Generate a new embargo ID based on the CWD'''
         if not cwd:
             cwd = os.getcwd()
         # this follows a similar pattern as docker-compose uses
         parent_dir = os.path.abspath(cwd)
         basename = os.path.basename(parent_dir).lower()
-        blockade_id = re.sub(r"[^a-z0-9]", "", basename)
-        if not blockade_id:  # if we can't get a valid name from CWD, use "default"
-            blockade_id = "default"
-        return blockade_id
+        embargo_id = re.sub(r"[^a-z0-9]", "", basename)
+        if not embargo_id:  # if we can't get a valid name from CWD, use "default"
+            embargo_id = "default"
+        return embargo_id
 
     def _assure_dir(self):
         '''Make sure the state directory exists'''
@@ -145,7 +145,7 @@ class BlockadeState(object):
                 raise
 
     def _state_delete(self):
-        '''Try to delete the state.yml file and the folder .blockade'''
+        '''Try to delete the state.yml file and the folder .embargo'''
         try:
             os.remove(self._state_file)
         except OSError as err:
@@ -160,10 +160,10 @@ class BlockadeState(object):
 
     def __base_state(self, containers):
         '''
-        Convert blockade ID and container information into
+        Convert embargo ID and container information into
         a state dictionary object.
         '''
-        return dict(blockade_id=self._blockade_id,
+        return dict(embargo_id=self._embargo_id,
                     containers=containers,
                     version=self._state_version)
 
@@ -181,7 +181,7 @@ class BlockadeState(object):
             if err.errno == errno.EEXIST:
                 raise AlreadyInitializedError(
                     "Path %s exists. "
-                    "You may need to destroy a previous blockade." % path)
+                    "You may need to destroy a previous embargo." % path)
             raise
         except Exception:
             # clean up our created file
@@ -195,4 +195,4 @@ class BlockadeState(object):
         except OSError as os_e:
             if os_e.errno != errno.EEXIST:
                 raise
-        return os.path.join(audit_dir, "%s.json" % self._blockade_id)
+        return os.path.join(audit_dir, "%s.json" % self._embargo_id)

@@ -25,14 +25,14 @@ import six
 import sys
 import time
 
-from blockade import audit
+from . import audit
 from .errors import AlreadyInitializedError
-from .errors import BlockadeContainerConflictError
-from .errors import BlockadeError
+from .errors import EmbargoContainerConflictError
+from .errors import EmbargoError
 from .errors import DockerContainerNotFound
 from .errors import InsufficientPermissionsError
 from .net import NetworkState
-from .state import BlockadeState
+from .state import EmbargoState
 
 
 # TODO: configurable timeout
@@ -41,11 +41,11 @@ DEFAULT_KILL_TIMEOUT = 3
 _logger = logging.getLogger(__name__)
 
 
-class Blockade(object):
-    def __init__(self, config, blockade_id=None, state=None,
+class Embargo(object):
+    def __init__(self, config, embargo_id=None, state=None,
                  network=None, docker_client=None):
         self.config = config
-        self.state = state or BlockadeState(blockade_id=blockade_id)
+        self.state = state or EmbargoState(embargo_id=embargo_id)
         self.network = network
         try:
             self._audit = audit.EventAuditor(self.state.get_audit_file())
@@ -65,7 +65,7 @@ class Blockade(object):
 
         # we can check if a state file already exists beforehand
         if self.state.exists():
-            raise AlreadyInitializedError('a blockade already exists in here - '
+            raise AlreadyInitializedError('a embargo already exists in here - '
                                           'you may want to destroy it first')
 
         def vprint(msg):
@@ -77,9 +77,9 @@ class Blockade(object):
             # Create custom network to allow docker resolve container hostnames
             # via built-in DNS server.
             response = self.docker_client.create_network(
-                                            self.state.blockade_net_name)
+                                            self.state.embargo_net_name)
             if response['Warning']:
-                raise BlockadeError("Error while creating network: '%s'" %
+                raise EmbargoError("Error while creating network: '%s'" %
                     (response['Warning']))
 
         for idx, container in enumerate(self.config.sorted_containers):
@@ -128,14 +128,14 @@ class Blockade(object):
         for link, alias in container.links.items():
             link_container = self.config.containers.get(link, None)
             if not link_container:
-                raise BlockadeError("link '%s' of container '%s' does not exist" %
+                raise EmbargoError("link '%s' of container '%s' does not exist" %
                                     (link, container.name))
-            name = link_container.get_name(self.state.blockade_id)
+            name = link_container.get_name(self.state.embargo_id)
             links[name] = alias
         return links
 
     def _start_container(self, container, force=False):
-        container_name = container.get_name(self.state.blockade_id)
+        container_name = container.get_name(self.state.embargo_id)
         volumes = list(container.volumes.values()) or None
         links = self.__get_container_links(container)
 
@@ -143,7 +143,7 @@ class Blockade(object):
         port_bindings = dict((v, k) for k, v in container.publish_ports.items())
 
         if self.config.is_udn():
-            network_mode = self.state.blockade_net_name
+            network_mode = self.state.embargo_net_name
         else:
             network_mode = None
 
@@ -167,7 +167,7 @@ class Blockade(object):
                 hostname=container.hostname,
                 environment=container.environment,
                 host_config=host_config,
-                labels={"blockade.id": self.state.blockade_id})
+                labels={"embargo.id": self.state.embargo_id})
             return response['Id']
 
         try:
@@ -179,7 +179,7 @@ class Blockade(object):
                 if force and self.__try_remove_container(container_name):
                     container_id = create_container()
                 else:
-                    raise BlockadeContainerConflictError(err)
+                    raise EmbargoContainerConflictError(err)
             else:
                 raise
 
@@ -220,7 +220,7 @@ class Blockade(object):
             networks = network.get('Networks')
             if self.config.is_udn():
                 ip = networks.get(
-                        self.state.blockade_net_name).get('IPAddress')
+                        self.state.embargo_net_name).get('IPAddress')
             elif networks and not ip:
                 if len(networks) == 1:
                     ip = six.next(six.itervalues(networks)).get('IPAddress')
@@ -250,28 +250,28 @@ class Blockade(object):
         return Container(name, container_id, container_status, **extras)
 
     def destroy(self, force=False):
-        containers = self._get_blockade_docker_containers()
+        containers = self._get_embargo_docker_containers()
         for container in list(containers.values()):
             container_id = container['Id']
             self.docker_client.stop(container_id, timeout=DEFAULT_KILL_TIMEOUT)
             self.docker_client.remove_container(container_id)
 
-        self.network.restore(self.state.blockade_id)
+        self.network.restore(self.state.embargo_id)
         self.state.destroy()
 
         if self.config.is_udn():
             try:
-                self.docker_client.remove_network(self.state.blockade_net_name)
+                self.docker_client.remove_network(self.state.embargo_net_name)
             except docker.errors.APIError as err:
                 if err.response.status_code != 404:
                     raise
 
-    # Get the containers that are part of the initial Blockade group
-    def _get_blockade_docker_containers(self):
+    # Get the containers that are part of the initial Embargo group
+    def _get_embargo_docker_containers(self):
         self.state.load()
         containers = {}
-        filters = {"label": ["blockade.id=" + self.state.blockade_id]}
-        prefix = self.state.blockade_id + "_"
+        filters = {"label": ["embargo.id=" + self.state.embargo_id]}
+        prefix = self.state.embargo_id + "_"
         for container in self.docker_client.containers(all=True, filters=filters):
             for name in container['Names']:
                 # strip leading '/'
@@ -287,7 +287,7 @@ class Blockade(object):
 
     def _get_docker_containers(self):
         self.state.load()
-        containers = self._get_blockade_docker_containers()
+        containers = self._get_embargo_docker_containers()
         # Search for and add any containers that were added to the state
         for state_container_name in self.state.containers:
             if state_container_name not in containers.keys():
@@ -300,7 +300,7 @@ class Blockade(object):
     def _get_all_containers(self):
         self.state.load()
         containers = []
-        ip_partitions = self.network.get_ip_partitions(self.state.blockade_id)
+        ip_partitions = self.network.get_ip_partitions(self.state.embargo_id)
         docker_containers = self._get_docker_containers()
 
         for name in docker_containers.keys():
@@ -335,7 +335,7 @@ class Blockade(object):
         for name in container_names:
             container = candidates.get(name)
             if not container:
-                raise BlockadeError("Container %s is not found or not any of %s"
+                raise EmbargoError("Container %s is not found or not any of %s"
                                     % (name, container_states))
             found.append(container)
         return found
@@ -502,7 +502,7 @@ class Blockade(object):
             for partition in partitions:
                 container_partitions.append([container_dict[c] for c in partition])
 
-            self.network.partition_containers(self.state.blockade_id,
+            self.network.partition_containers(self.state.embargo_id,
                                               container_partitions)
         except Exception as ex:
             message = str(ex)
@@ -517,7 +517,7 @@ class Blockade(object):
         audit_status = "Success"
         try:
             self.state.load()
-            self.network.restore(self.state.blockade_id)
+            self.network.restore(self.state.embargo_id)
         except Exception as ex:
             message = str(ex)
             audit_status = "Failed"
@@ -620,11 +620,11 @@ def expand_partitions(containers, partitions):
         union.update(partition)
 
     if unknown:
-        raise BlockadeError('Partitions contain unknown containers: %s' %
+        raise EmbargoError('Partitions contain unknown containers: %s' %
                             list(unknown))
 
     if holy:
-        raise BlockadeError('Partitions contain holy containers: %s' %
+        raise EmbargoError('Partitions contain holy containers: %s' %
                             list(holy))
 
     # put any leftover containers in an implicit partition

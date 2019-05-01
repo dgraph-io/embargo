@@ -21,10 +21,10 @@ import logging
 
 import docker
 
-from blockade.host import HostExec
-from blockade.errors import HostExecError
-from blockade.tests.test_integration import INT_SKIP
-from blockade.tests.helpers import HostExecHelper
+from ..host import HostExec
+from ..errors import HostExecError
+from .test_integration import INT_SKIP
+from ..tests.helpers import HostExecHelper
 
 
 _logger = logging.getLogger(__name__)

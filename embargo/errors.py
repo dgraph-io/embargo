@@ -15,57 +15,57 @@
 #
 
 
-class BlockadeError(Exception):
-    """Expected error within Blockade
+class EmbargoError(Exception):
+    """Expected error within Embargo
     """
 
 
-class BlockadeConfigError(BlockadeError):
+class EmbargoConfigError(EmbargoError):
     """Error in configuration
     """
 
 
-class BlockadeUsageError(BlockadeError):
+class EmbargoUsageError(EmbargoError):
     """Error in configuration
     """
 
 
-class BlockadeContainerConflictError(BlockadeError):
+class EmbargoContainerConflictError(EmbargoError):
     """Error on conflicting containers
     """
 
 
-class AlreadyInitializedError(BlockadeError):
-    """Blockade already created in this context
+class AlreadyInitializedError(EmbargoError):
+    """Embargo already created in this context
     """
 
 
-class NotInitializedError(BlockadeError):
-    """Blockade not created in this context
+class NotInitializedError(EmbargoError):
+    """Embargo not created in this context
     """
 
 
-class InconsistentStateError(BlockadeError):
-    """Blockade state is inconsistent (partially created or destroyed)
+class InconsistentStateError(EmbargoError):
+    """Embargo state is inconsistent (partially created or destroyed)
     """
 
 
-class InsufficientPermissionsError(BlockadeError):
-    """Blockade is executed with insufficient permissions
+class InsufficientPermissionsError(EmbargoError):
+    """Embargo is executed with insufficient permissions
     """
 
 
-class InvalidBlockadeName(BlockadeError):
-    """Invalid blockade name
+class InvalidEmbargoName(EmbargoError):
+    """Invalid embargo name
     """
 
 
-class DockerContainerNotFound(BlockadeError):
+class DockerContainerNotFound(EmbargoError):
     """Docker container not found
     """
 
 
-class HostExecError(BlockadeError):
+class HostExecError(EmbargoError):
     """Error in host command
     """
 
@@ -83,12 +83,12 @@ class HostExecError(BlockadeError):
         return message
 
 
-class BlockadeStateTransitionError(BlockadeError):
+class EmbargoStateTransitionError(EmbargoError):
     """The state machine was given an invalid event.  Based on the state that
      it is in and the event received the state machine could not process the
      event"""
     def __init__(self, current_state, event, msg=None):
-        super(BlockadeStateTransitionError, self).__init__(msg)
+        super(EmbargoStateTransitionError, self).__init__(msg)
         self.state = current_state
         self.event = event
 
@@ -97,10 +97,10 @@ class BlockadeStateTransitionError(BlockadeError):
             self.event, self.state)
 
 
-class BlockadeHttpError(BlockadeError):
+class EmbargoHttpError(EmbargoError):
     """Errors from the REST API
     """
     def __init__(self, http_code, http_msg, msg=None):
-        super(BlockadeStateTransitionError, self).__init__(msg)
+        super(EmbargoStateTransitionError, self).__init__(msg)
         self.http_code = http_code
         self.http_msg = http_msg
